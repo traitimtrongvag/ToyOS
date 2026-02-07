@@ -1,0 +1,23 @@
+ToyOS Documentation
+
+Core Documentation:
+
+  boot-process.txt        Bootloader and initialization
+  memory-layout.txt       Physical memory organization  
+  build-system.txt        Compilation and linking
+  kernel-core.txt         Terminal driver and main loop
+  rust-integration.txt    FFI and memory allocator
+  driver-layer.txt        C++ driver architecture
+
+API Reference:
+
+  api/terminal.txt        VGA output functions
+  api/memory.txt          Page allocation functions
+  api/driver.txt          Driver subsystem
+
+ABI Specifications:
+
+  abi/calling-conventions.txt    cdecl and cross-language calls
+  abi/type-compatibility.txt     Type mapping between languages
+
+For first-time readers, start with boot-process.txt and build-system.txt.

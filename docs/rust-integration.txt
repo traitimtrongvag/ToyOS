@@ -1,0 +1,96 @@
+Rust Integration
+
+
+NO_STD ENVIRONMENT
+
+#![no_std] disables standard library:
+  - No heap allocator
+  - No panic runtime
+  - No file I/O, networking
+  
+Required language items:
+  #[panic_handler]
+  #[lang = "eh_personality"]
+
+
+CONFIGURATION
+
+Cargo.toml:
+  crate-type = ["staticlib"]
+  panic = "abort"
+  
+Target: i686-unknown-linux-gnu
+
+
+MEMORY MANAGER
+
+Static state:
+  ALLOCATED_PAGES: AtomicU32    Allocation count
+  NEXT_PAGE: AtomicU32          Next address
+  MEMORY_MANAGER: MemoryManager Global instance
+
+Constants:
+  TOTAL_PAGES = 1024
+  PAGE_SIZE = 4096
+
+
+EXPORTED FUNCTIONS
+
+All use extern "C" for C ABI:
+
+rust_memory_init()
+  Initialize allocator state
+
+rust_allocate_page() -> u32
+  Allocate 4KB frame
+  Returns physical address or 0 on failure
+
+rust_free_page(page: u32)
+  Mark page as freed (not recycled)
+
+rust_print_stats()
+  Output allocation statistics
+
+rust_get_total_memory() -> u32
+rust_get_free_memory() -> u32
+
+
+FFI IMPORTS
+
+Calls C functions:
+
+extern "C" {
+    fn terminal_writestring(s: *const u8);
+    fn terminal_putchar(c: u8);
+}
+
+
+ATOMIC OPERATIONS
+
+AtomicU32 provides lock-free synchronization:
+
+fetch_add(n, Ordering::SeqCst)
+  Atomically increment and return old value
+
+SeqCst = Sequential consistency (strongest ordering)
+
+
+ALLOCATION ALGORITHM
+
+Bump allocator:
+  1. Check ALLOCATED_PAGES < TOTAL_PAGES
+  2. Increment counter atomically
+  3. Return NEXT_PAGE, add PAGE_SIZE
+  4. Return 0 if exhausted
+
+No frame reuse after free.
+
+
+SAFETY
+
+Unsafe required for:
+  - Global mutable static
+  - Calling FFI functions
+  - Raw pointers
+
+Minimal unsafe surface area.

@@ -1,0 +1,43 @@
+Driver API
+
+
+void cpp_driver_init(void)
+
+  Initialize driver subsystem.
+  Create global driver instance.
+  Must be called before cpp_driver_test.
+
+
+void cpp_driver_test(void)
+
+  Run driver test routine.
+  Populate and display test data.
+  Requires prior cpp_driver_init call.
+
+
+EXAMPLE
+
+  cpp_driver_init();
+  cpp_driver_test();
+
+
+EXTENDING
+
+To add new driver:
+
+1. Define class:
+   class MyDriver {
+   public:
+       MyDriver();
+       void init();
+   };
+
+2. Export interface:
+   extern "C" void my_driver_init() {
+       static MyDriver driver;
+       driver.init();
+   }
+
+3. Call from C:
+   extern void my_driver_init(void);
+   my_driver_init();

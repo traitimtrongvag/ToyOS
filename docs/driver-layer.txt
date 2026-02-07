@@ -1,0 +1,99 @@
+Driver Layer
+
+
+FREESTANDING C++
+
+Kernel C++ challenges:
+  - No standard library
+  - No dynamic allocation (custom new/delete)
+  - No exceptions
+  - No RTTI
+
+Compilation flags:
+  -fno-exceptions -fno-rtti
+
+
+CUSTOM MEMORY
+
+Static heap implementation:
+  - 8KB buffer
+  - Bump allocator
+  - delete is no-op
+
+operator new/delete defined in driver/driver.cpp.
+
+
+SIMPLEVECTOR CLASS
+
+Minimal dynamic array:
+
+Members:
+  int* data
+  unsigned int size
+  unsigned int capacity
+
+Methods:
+  push_back(int)    Append element
+  get(index)        Retrieve element
+  get_size()        Current count
+
+Growth strategy: doubles capacity when full.
+
+
+DRIVER CLASS
+
+Generic device driver abstraction:
+
+Members:
+  const char* name
+  bool initialized
+  SimpleVector* test_data
+
+Methods:
+  init()            Initialize driver
+  run_test()        Execute test routine
+
+
+EXPORTED INTERFACE
+
+extern "C" prevents name mangling:
+
+cpp_driver_init()
+  Allocate and initialize driver
+
+cpp_driver_test()
+  Run driver test
+
+
+LANGUAGE FEATURES
+
+Supported:
+  - Classes and objects
+  - Constructors/destructors
+  - Member functions
+  - Virtual functions
+  - Single inheritance
+
+Not supported:
+  - Standard library (vector, string, etc.)
+  - Exceptions (disabled)
+  - RTTI (disabled)
+  - Complex templates
+
+
+INTEGRATION WITH C
+
+C++ can:
+  - Call C functions via extern "C"
+  - Be called from C via extern "C" wrapper
+
+Complex types should not cross boundary.
+
+
+BEST PRACTICES
+
+- Use extern "C" for kernel-visible functions
+- Keep object lifetimes simple
+- Avoid complex templates
+- Prefer static over dynamic allocation
+- Manual error handling (return codes)

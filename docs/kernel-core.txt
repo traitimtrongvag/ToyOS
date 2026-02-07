@@ -1,0 +1,67 @@
+Kernel Core
+
+
+VGA TERMINAL DRIVER
+
+Manages text output at 0xB8000.
+
+State:
+  terminal_row, terminal_column    Current cursor position
+  terminal_color                   Current attribute byte
+  terminal_buffer                  Pointer to VGA memory
+
+Functions:
+  terminal_initialize()            Clear screen, reset state
+  terminal_putchar(char)           Write character, advance cursor
+  terminal_writestring(str)        Write null-terminated string
+  terminal_setcolor(color)         Set attribute for next output
+  terminal_scroll()                Move all lines up one row
+
+
+SCROLLING
+
+When cursor reaches row 25:
+  1. Copy row N+1 to row N for all rows
+  2. Clear bottom row
+  3. Keep cursor on row 24
+
+
+KERNEL INITIALIZATION
+
+Flow in kernel_main():
+
+  terminal_initialize()
+  Display banner
+  rust_memory_init()
+  rust_allocate_page() - test allocation
+  rust_print_stats()
+  cpp_driver_init()
+  cpp_driver_test()
+  Infinite loop (HLT)
+
+
+COLOR SCHEME
+
+Different colors identify subsystems:
+  Cyan: Headers
+  Green: C kernel
+  Magenta: Rust subsystem
+  Blue: C++ drivers
+  White: Status messages
+
+
+STRING FUNCTIONS
+
+Basic implementations without libc:
+  strlen, memset, memcpy, strcmp, strcpy
+
+Located in kernel/string.c.
+
+
+LIMITATIONS
+
+- No cursor hardware control
+- No keyboard input
+- Fixed 80x25 mode
+- No scrollback buffer
+- No framebuffer graphics

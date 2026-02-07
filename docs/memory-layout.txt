@@ -1,0 +1,60 @@
+Memory Layout
+
+
+PHYSICAL ADDRESS SPACE
+
+0x00000000 - 0x000FFFFF    Low memory (1MB)
+  0x00000 - 0x003FF        Real mode IVT
+  0x00400 - 0x004FF        BIOS data
+  0x00500 - 0x7BFFF        Free conventional memory
+  0x7C00  - 0x7DFFF        Bootloader
+  0xA0000 - 0xBFFFF        VGA memory
+  0xB8000                  VGA text buffer (80x25)
+  0xC0000 - 0xFFFFF        ROM
+
+0x00100000+                Kernel (starts at 1MB)
+
+
+KERNEL SECTIONS
+
+Defined in kernel/linker.ld:
+
+.multiboot    ALIGN(4K)    Multiboot header
+.text         ALIGN(4K)    Code
+.rodata       ALIGN(4K)    Read-only data
+.data         ALIGN(4K)    Initialized data
+.bss          ALIGN(4K)    Uninitialized data + stack
+
+
+VGA TEXT BUFFER
+
+Physical address: 0xB8000
+Size: 4000 bytes (80 * 25 * 2)
+
+Each character cell:
+  Byte 0: ASCII character
+  Byte 1: Attribute
+    Bits 0-3: Foreground color
+    Bits 4-6: Background color
+    Bit 7: Blink
+
+
+PAGE FRAME ALLOCATOR
+
+Rust memory manager controls:
+  Total frames: 1024
+  Frame size: 4KB
+  Managed memory: 4MB
+
+Allocation range: 0x100000 - 0x4FFFFF
+
+Simple bump allocator (no reuse of freed frames).
+
+
+LIMITATIONS
+
+- No paging/virtual memory
+- Identity mapping only
+- 4MB allocation limit
+- No memory protection
+- No fragmentation handling

@@ -1,0 +1,138 @@
+Type Compatibility
+
+
+INTEGER TYPES
+
+C to Rust mapping:
+
+  char          i8 or u8
+  short         i16
+  int           i32
+  long          i32 (on i686)
+  long long     i64
+  unsigned int  u32
+
+
+POINTER TYPES
+
+All pointers are 4 bytes on i686.
+
+C:
+  int* p;
+
+Rust:
+  *const i32  (immutable)
+  *mut i32    (mutable)
+
+C++:
+  int* p;
+
+
+NULL POINTERS
+
+C/C++:
+  NULL or nullptr
+
+Rust:
+  core::ptr::null()
+  core::ptr::null_mut()
+
+
+BOOLEAN
+
+For FFI, use int or uint8_t instead of bool.
+Bool size/layout varies between languages.
+
+
+STRUCT LAYOUT
+
+Rust requires #[repr(C)] for C compatibility:
+
+C:
+  struct Point {
+      int x;
+      int y;
+  };
+
+Rust:
+  #[repr(C)]
+  struct Point {
+      x: i32,
+      y: i32,
+  }
+
+C++:
+  struct Point {
+      int x;
+      int y;
+  };
+
+
+ARRAYS
+
+C:    int arr[10];
+Rust: [i32; 10]
+C++:  int arr[10];
+
+Pass as pointer + size across FFI.
+
+
+STRINGS
+
+Always use null-terminated C strings:
+
+C:    char*
+Rust: *const u8
+C++:  char*
+
+Not Rust &str or C++ std::string.
+
+
+ENUMS
+
+Rust requires #[repr(C)]:
+
+C:
+  enum Color { RED, GREEN, BLUE };
+
+Rust:
+  #[repr(C)]
+  enum Color { Red, Green, Blue }
+
+C++:
+  enum Color { RED, GREEN, BLUE };
+
+
+ALIGNMENT
+
+Default alignment on i686:
+
+  1-byte: 1-byte aligned
+  2-byte: 2-byte aligned
+  4-byte: 4-byte aligned
+  8-byte: 4-byte aligned
+
+Structs aligned to largest member (max 4 bytes).
+
+
+PADDING
+
+Compiler adds padding for alignment.
+
+Example:
+  struct Example {
+      char a;    // 1 byte
+      // 3 bytes padding
+      int b;     // 4 bytes
+  };
+  
+Total: 8 bytes (not 5).
+
+
+BEST PRACTICES
+
+- Use fixed-size types (int32_t, uint32_t)
+- Always #[repr(C)] for Rust structs
+- Document ownership of pointers
+- Use int instead of bool for FFI
+- Verify sizes with sizeof

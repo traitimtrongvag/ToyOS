@@ -1,0 +1,64 @@
+Memory API
+
+
+void rust_memory_init(void)
+
+  Initialize memory management.
+  Reset all counters.
+  Call before any allocation.
+
+
+uint32_t rust_allocate_page(void)
+
+  Allocate one 4KB page frame.
+  
+  Returns:
+    Physical address of allocated page
+    0 if out of memory
+  
+  Thread-safe (uses atomics).
+
+
+void rust_free_page(uint32_t page)
+
+  Mark page as freed.
+  
+  Note: Current implementation does not reuse freed pages.
+
+
+void rust_print_stats(void)
+
+  Print memory statistics to terminal.
+  Shows total, allocated, and free pages.
+
+
+uint32_t rust_get_total_memory(void)
+
+  Returns total managed memory in bytes.
+  Typically 4MB (1024 * 4096).
+
+
+uint32_t rust_get_free_memory(void)
+
+  Returns available memory in bytes.
+
+
+CONSTANTS
+
+  Page size: 4096 bytes
+  Total pages: 1024
+  Total memory: 4MB
+
+
+EXAMPLE
+
+  rust_memory_init();
+  
+  uint32_t page = rust_allocate_page();
+  if (page == 0) {
+      terminal_writestring("Out of memory\n");
+      return;
+  }
+  
+  rust_print_stats();
+  rust_free_page(page);

@@ -1,0 +1,86 @@
+Build System
+
+
+TOOLCHAIN
+
+- NASM: Assembly (.asm → .o)
+- GCC: C compiler with 32-bit support
+- G++: C++ compiler with 32-bit support
+- Rust: With i686-unknown-linux-gnu target
+- ld: GNU linker
+
+
+BUILD STAGES
+
+1. Rust Library
+   cargo build --release --target i686-unknown-linux-gnu
+   Output: librust_module.a
+
+2. Assembly Bootloader
+   nasm -f elf32 boot/boot.asm -o build/boot.o
+
+3. C Kernel
+   gcc -m32 -ffreestanding -nostdlib -fno-pie \
+       -fno-stack-protector -O2 -c kernel/kernel.c
+
+4. C++ Driver
+   g++ -m32 -ffreestanding -nostdlib -fno-pie \
+       -fno-stack-protector -fno-exceptions -fno-rtti \
+       -O2 -c driver/driver.cpp
+
+5. Linking
+   ld -m elf_i386 -T kernel/linker.ld \
+      boot.o kernel.o driver.o librust_module.a -lgcc
+
+
+KEY FLAGS
+
+-m32                    32-bit target
+-ffreestanding          No hosted environment
+-nostdlib               No standard library
+-fno-pie                Position-dependent code
+-fno-stack-protector    No stack canaries
+-fno-exceptions         Disable C++ exceptions
+-fno-rtti               Disable C++ RTTI
+
+
+LINKER SCRIPT
+
+Entry point: _start
+Load address: 0x100000 (1MB)
+
+Sections placed in order with 4KB alignment.
+
+
+SYMBOL RESOLUTION
+
+All cross-language functions use C ABI:
+
+C exports:
+  kernel_main, terminal_writestring, terminal_putchar
+
+Rust exports (extern "C"):
+  #[no_mangle]
+  pub extern "C" fn rust_memory_init()
+
+C++ exports:
+  extern "C" void cpp_driver_init()
+
+
+COMMON ISSUES
+
+"undefined reference to __stack_chk_fail"
+  → Add -fno-stack-protector
+
+"target i686-unknown-linux-gnu not installed"
+  → rustup target add i686-unknown-linux-gnu
+
+"cannot find -lgcc"
+  → Install gcc-multilib or adjust -L path
+
+
+DEBUGGING
+
+Check symbols:     nm build/kernel.o
+View sections:     readelf -S build/toyos.elf
+Disassemble:       objdump -d build/toyos.elf

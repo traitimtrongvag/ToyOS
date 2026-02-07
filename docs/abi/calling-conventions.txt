@@ -1,0 +1,103 @@
+Calling Conventions
+
+
+TARGET ABI
+
+Target: i686-unknown-linux-gnu
+Convention: System V i386 (cdecl)
+
+
+REGISTERS
+
+Caller-saved (volatile):
+  EAX, ECX, EDX
+
+Callee-saved (non-volatile):
+  EBX, ESI, EDI, EBP
+
+Special:
+  ESP - Stack pointer
+  EIP - Instruction pointer
+
+
+PARAMETER PASSING
+
+Parameters pushed right-to-left on stack.
+
+Example: func(a, b, c)
+
+Stack layout:
+  [return address]
+  [c]
+  [b]
+  [a]  <- ESP after call
+
+
+RETURN VALUES
+
+EAX: Integer/pointer (32-bit)
+EDX:EAX: 64-bit values
+
+
+STACK ALIGNMENT
+
+16-byte alignment at call boundary.
+Compiler handles automatically.
+
+
+CROSS-LANGUAGE CALLS
+
+C calling Rust:
+
+  // Rust
+  #[no_mangle]
+  pub extern "C" fn rust_func(x: i32) -> i32 { x + 1 }
+  
+  // C
+  extern int rust_func(int x);
+  int result = rust_func(5);
+
+
+C calling C++:
+
+  // C++
+  extern "C" void cpp_func(int x) { }
+  
+  // C
+  extern void cpp_func(int x);
+  cpp_func(10);
+
+
+NAME MANGLING
+
+C:
+  No mangling
+  func -> func
+
+C++ without extern "C":
+  Mangled with type info
+  func(int) -> _Z4funci
+
+C++ with extern "C":
+  No mangling
+  func -> func
+
+Rust without #[no_mangle]:
+  Hash included
+  func -> _ZN4core...
+
+Rust with #[no_mangle]:
+  No mangling
+  func -> func
+
+
+DEBUGGING
+
+Check symbols:
+  nm build/kernel.o
+
+Check undefined:
+  nm -u build/toyos.elf
+
+Disassemble:
+  objdump -d build/toyos.elf

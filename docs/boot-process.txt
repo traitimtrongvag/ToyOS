@@ -1,0 +1,63 @@
+Boot Process
+
+
+MULTIBOOT HEADER
+
+Located in boot/boot.asm, section .multiboot. Contains:
+  Magic: 0x1BADB002
+  Flags: 0x00000003 (page alignment, memory info)
+  Checksum: -(magic + flags)
+
+Bootloader validates these values before jumping to kernel.
+
+
+BOOT SEQUENCE
+
+1. BIOS/bootloader loads kernel at 1MB physical address
+2. Bootloader verifies multiboot header
+3. Switches to 32-bit protected mode
+4. Sets up initial GDT
+5. Loads registers per multiboot spec:
+   EAX = 0x2BADB002 (magic)
+   EBX = multiboot info structure address
+6. Jumps to _start symbol
+
+
+STACK INITIALIZATION
+
+Stack allocated in .bss section:
+  Size: 16KB (0x4000 bytes)
+  Grows downward from stack_top
+  
+At _start:
+  mov esp, stack_top     Set stack pointer
+  push eax               Save multiboot magic
+  push ebx               Save info pointer
+  call kernel_main       Enter C code
+
+
+HALT LOOP
+
+After kernel_main returns:
+  cli                    Disable interrupts
+  hlt                    Halt CPU
+  jmp back to hlt        Infinite loop
+
+Prevents executing random memory after kernel exits.
+
+
+MEMORY STATE AT ENTRY
+
+- Identity mapped (virtual = physical)
+- Paging disabled
+- Interrupts disabled
+- A20 line enabled
+- No GDT setup beyond bootloader minimum
+
+
+DEBUGGING
+
+View boot state with QEMU:
+  qemu-system-i386 -kernel build/toyos.elf -d int,cpu_reset
+
+Dumps CPU state on faults.
