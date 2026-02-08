@@ -7,6 +7,17 @@ use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
 
+pub mod bitmap;
+pub mod scheduler;
+pub mod memory_pool;
+pub mod process;
+pub mod ipc;
+pub mod utils;
+
+use memory_pool::MemoryPool;
+use process::ProcessManager;
+use ipc::MessageQueue;
+
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
@@ -17,19 +28,17 @@ extern "C" fn eh_personality() {}
 
 const TOTAL_PAGES: u32 = 1024;
 const PAGE_SIZE: u32 = 4096;
-const MIN_PAGE_ADDR: u32 = 0x100000; // 1MB
+const MIN_PAGE_ADDR: u32 = 0x100000;
 const MAX_PAGE_ADDR: u32 = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE);
 
 static ALLOCATED_PAGES: AtomicU32 = AtomicU32::new(0);
 static NEXT_PAGE: AtomicU32 = AtomicU32::new(MIN_PAGE_ADDR);
 
-// Thread-safe wrapper for MemoryManager using UnsafeCell
 struct MemoryManager {
     total_pages: u32,
     free_pages: UnsafeCell<u32>,
 }
 
-// Safety: We ensure single-threaded access in our kernel
 unsafe impl Sync for MemoryManager {}
 
 impl MemoryManager {
@@ -70,6 +79,9 @@ impl MemoryManager {
 }
 
 static MEMORY_MANAGER: MemoryManager = MemoryManager::new();
+static mut GLOBAL_MEMORY_POOL: MemoryPool = MemoryPool::new();
+static mut GLOBAL_PROCESS_MANAGER: ProcessManager = ProcessManager::new();
+static mut GLOBAL_MESSAGE_QUEUE: MessageQueue = MessageQueue::new();
 
 #[no_mangle]
 pub extern "C" fn rust_memory_init() {
@@ -80,21 +92,17 @@ pub extern "C" fn rust_memory_init() {
 
 #[no_mangle]
 pub extern "C" fn rust_allocate_page() -> u32 {
-    // Check if we've exceeded the page limit
     let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
     if allocated >= TOTAL_PAGES {
-        return 0; // Out of memory
+        return 0;
     }
     
-    // Atomically increment and get the page address
     let page = NEXT_PAGE.fetch_add(PAGE_SIZE, Ordering::SeqCst);
     
-    // Validate page address is within bounds
     if page >= MAX_PAGE_ADDR {
-        return 0; // Address out of range
+        return 0;
     }
     
-    // Update allocation counters
     ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
     MEMORY_MANAGER.decrement_free_pages();
     
@@ -103,20 +111,17 @@ pub extern "C" fn rust_allocate_page() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn rust_free_page(page: u32) {
-    // Validate page address
     if page < MIN_PAGE_ADDR || page >= MAX_PAGE_ADDR {
-        return; // Invalid page address
+        return;
     }
     
-    // Check alignment
     if page % PAGE_SIZE != 0 {
-        return; // Page not properly aligned
+        return;
     }
     
-    // Check if we have pages to free
     let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
     if allocated == 0 {
-        return; // Nothing to free
+        return;
     }
     
     ALLOCATED_PAGES.fetch_sub(1, Ordering::SeqCst);
@@ -185,10 +190,96 @@ pub extern "C" fn rust_get_allocated_memory() -> u32 {
     ALLOCATED_PAGES.load(Ordering::SeqCst) * PAGE_SIZE
 }
 
-// Additional utility function to check if an address is valid
 #[no_mangle]
 pub extern "C" fn rust_is_valid_page(page: u32) -> bool {
     page >= MIN_PAGE_ADDR && 
     page < MAX_PAGE_ADDR && 
     page % PAGE_SIZE == 0
 }
+
+#[no_mangle]
+pub extern "C" fn rust_pool_allocate() -> *mut u8 {
+    unsafe {
+        GLOBAL_MEMORY_POOL.allocate_block().unwrap_or(core::ptr::null_mut())
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_pool_free(ptr: *mut u8) -> bool {
+    unsafe {
+        GLOBAL_MEMORY_POOL.free_block(ptr)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_pool_stats() {
+    unsafe {
+        print_str("  Pool allocated: ");
+        print_u32(GLOBAL_MEMORY_POOL.get_allocated_count() as u32);
+        print_str("\n  Pool free: ");
+        print_u32(GLOBAL_MEMORY_POOL.get_free_count() as u32);
+        print_str("\n");
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_process_create(priority: u8, name: *const u8) -> u32 {
+    unsafe {
+        if name.is_null() {
+            return 0;
+        }
+        
+        let name_len = utils::string_length(name);
+        let name_slice = core::slice::from_raw_parts(name, name_len);
+        
+        GLOBAL_PROCESS_MANAGER
+            .create_process(priority, name_slice)
+            .unwrap_or(0)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_process_terminate(pid: u32) -> bool {
+    unsafe {
+        GLOBAL_PROCESS_MANAGER.terminate_process(pid)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_process_schedule() -> u32 {
+    unsafe {
+        GLOBAL_PROCESS_MANAGER.schedule_next().unwrap_or(0)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_ipc_send(
+    msg_type: u8,
+    sender_pid: u32,
+    receiver_pid: u32,
+    data: *const u8,
+    data_len: usize
+) -> bool {
+    unsafe {
+        if data.is_null() {
+            return false;
+        }
+        
+        let data_slice = core::slice::from_raw_parts(data, data_len);
+        let msg_type_enum = match msg_type {
+            1 => ipc::MessageType::Data,
+            2 => ipc::MessageType::Signal,
+            _ => ipc::MessageType::Empty,
+        };
+        
+        GLOBAL_MESSAGE_QUEUE.send_message(msg_type_enum, sender_pid, receiver_pid, data_slice)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_ipc_has_message(receiver_pid: u32) -> bool {
+    unsafe {
+        GLOBAL_MESSAGE_QUEUE.has_message_for(receiver_pid)
+    }
+}
+
