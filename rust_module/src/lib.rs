@@ -5,6 +5,7 @@
 
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicU32, Ordering};
+use core::cell::UnsafeCell;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -16,52 +17,110 @@ extern "C" fn eh_personality() {}
 
 const TOTAL_PAGES: u32 = 1024;
 const PAGE_SIZE: u32 = 4096;
+const MIN_PAGE_ADDR: u32 = 0x100000; // 1MB
+const MAX_PAGE_ADDR: u32 = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE);
 
 static ALLOCATED_PAGES: AtomicU32 = AtomicU32::new(0);
-static NEXT_PAGE: AtomicU32 = AtomicU32::new(0x100000);
+static NEXT_PAGE: AtomicU32 = AtomicU32::new(MIN_PAGE_ADDR);
 
+// Thread-safe wrapper for MemoryManager using UnsafeCell
 struct MemoryManager {
     total_pages: u32,
-    free_pages: u32,
+    free_pages: UnsafeCell<u32>,
 }
 
-static mut MEMORY_MANAGER: MemoryManager = MemoryManager {
-    total_pages: TOTAL_PAGES,
-    free_pages: TOTAL_PAGES,
-};
+// Safety: We ensure single-threaded access in our kernel
+unsafe impl Sync for MemoryManager {}
+
+impl MemoryManager {
+    const fn new() -> Self {
+        Self {
+            total_pages: TOTAL_PAGES,
+            free_pages: UnsafeCell::new(TOTAL_PAGES),
+        }
+    }
+    
+    fn get_free_pages(&self) -> u32 {
+        unsafe { *self.free_pages.get() }
+    }
+    
+    fn decrement_free_pages(&self) {
+        unsafe {
+            let free = self.free_pages.get();
+            if *free > 0 {
+                *free -= 1;
+            }
+        }
+    }
+    
+    fn increment_free_pages(&self) {
+        unsafe {
+            let free = self.free_pages.get();
+            if *free < TOTAL_PAGES {
+                *free += 1;
+            }
+        }
+    }
+    
+    fn reset(&self) {
+        unsafe {
+            *self.free_pages.get() = TOTAL_PAGES;
+        }
+    }
+}
+
+static MEMORY_MANAGER: MemoryManager = MemoryManager::new();
 
 #[no_mangle]
 pub extern "C" fn rust_memory_init() {
-    unsafe {
-        MEMORY_MANAGER.total_pages = TOTAL_PAGES;
-        MEMORY_MANAGER.free_pages = TOTAL_PAGES;
-    }
+    MEMORY_MANAGER.reset();
     ALLOCATED_PAGES.store(0, Ordering::SeqCst);
-    NEXT_PAGE.store(0x100000, Ordering::SeqCst);
+    NEXT_PAGE.store(MIN_PAGE_ADDR, Ordering::SeqCst);
 }
 
 #[no_mangle]
 pub extern "C" fn rust_allocate_page() -> u32 {
-    let allocated = ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
-    
+    // Check if we've exceeded the page limit
+    let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
     if allocated >= TOTAL_PAGES {
-        return 0;
+        return 0; // Out of memory
     }
     
-    unsafe {
-        MEMORY_MANAGER.free_pages -= 1;
-    }
-    
+    // Atomically increment and get the page address
     let page = NEXT_PAGE.fetch_add(PAGE_SIZE, Ordering::SeqCst);
+    
+    // Validate page address is within bounds
+    if page >= MAX_PAGE_ADDR {
+        return 0; // Address out of range
+    }
+    
+    // Update allocation counters
+    ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
+    MEMORY_MANAGER.decrement_free_pages();
+    
     page
 }
 
 #[no_mangle]
-pub extern "C" fn rust_free_page(_page: u32) {
-    ALLOCATED_PAGES.fetch_sub(1, Ordering::SeqCst);
-    unsafe {
-        MEMORY_MANAGER.free_pages += 1;
+pub extern "C" fn rust_free_page(page: u32) {
+    // Validate page address
+    if page < MIN_PAGE_ADDR || page >= MAX_PAGE_ADDR {
+        return; // Invalid page address
     }
+    
+    // Check alignment
+    if page % PAGE_SIZE != 0 {
+        return; // Page not properly aligned
+    }
+    
+    // Check if we have pages to free
+    let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
+    if allocated == 0 {
+        return; // Nothing to free
+    }
+    
+    ALLOCATED_PAGES.fetch_sub(1, Ordering::SeqCst);
+    MEMORY_MANAGER.increment_free_pages();
 }
 
 extern "C" {
@@ -85,7 +144,7 @@ fn print_u32(num: u32) {
         return;
     }
     
-    while n > 0 {
+    while n > 0 && i < buffer.len() {
         buffer[i] = (n % 10) as u8 + b'0';
         n /= 10;
         i += 1;
@@ -100,7 +159,7 @@ fn print_u32(num: u32) {
 #[no_mangle]
 pub extern "C" fn rust_print_stats() {
     let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
-    let free = unsafe { MEMORY_MANAGER.free_pages };
+    let free = MEMORY_MANAGER.get_free_pages();
     
     print_str("  Total pages: ");
     print_u32(TOTAL_PAGES);
@@ -118,5 +177,18 @@ pub extern "C" fn rust_get_total_memory() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn rust_get_free_memory() -> u32 {
-    unsafe { MEMORY_MANAGER.free_pages * PAGE_SIZE }
+    MEMORY_MANAGER.get_free_pages() * PAGE_SIZE
+}
+
+#[no_mangle]
+pub extern "C" fn rust_get_allocated_memory() -> u32 {
+    ALLOCATED_PAGES.load(Ordering::SeqCst) * PAGE_SIZE
+}
+
+// Additional utility function to check if an address is valid
+#[no_mangle]
+pub extern "C" fn rust_is_valid_page(page: u32) -> bool {
+    page >= MIN_PAGE_ADDR && 
+    page < MAX_PAGE_ADDR && 
+    page % PAGE_SIZE == 0
 }
