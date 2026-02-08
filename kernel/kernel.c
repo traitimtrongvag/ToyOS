@@ -4,6 +4,7 @@
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_MEMORY 0xB8000
+#define TAB_WIDTH 4
 
 typedef enum {
     VGA_COLOR_BLACK = 0,
@@ -77,23 +78,45 @@ void terminal_scroll(void) {
     }
 }
 
+static void terminal_newline(void) {
+    terminal_column = 0;
+    if (++terminal_row == VGA_HEIGHT) {
+        terminal_row = VGA_HEIGHT - 1;
+        terminal_scroll();
+    }
+}
+
 void terminal_putchar(char c) {
-    if (c == '\n') {
-        terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT) {
-            terminal_row = VGA_HEIGHT - 1;
-            terminal_scroll();
-        }
-        return;
+    /* Handle special characters */
+    switch (c) {
+        case '\n':
+            terminal_newline();
+            return;
+        case '\r':
+            terminal_column = 0;
+            return;
+        case '\t':
+            /* Align to next tab stop */
+            do {
+                terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+                if (++terminal_column == VGA_WIDTH) {
+                    terminal_newline();
+                }
+            } while (terminal_column % TAB_WIDTH != 0 && terminal_column < VGA_WIDTH);
+            return;
+        case '\b':
+            /* Backspace: move cursor back one position if possible */
+            if (terminal_column > 0) {
+                terminal_column--;
+                terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+            }
+            return;
     }
     
+    /* Regular printable character */
     terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
     if (++terminal_column == VGA_WIDTH) {
-        terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT) {
-            terminal_row = VGA_HEIGHT - 1;
-            terminal_scroll();
-        }
+        terminal_newline();
     }
 }
 
