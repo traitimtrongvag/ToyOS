@@ -10,8 +10,12 @@ private:
     unsigned int capacity;
     
     void expand() {
-        unsigned int new_capacity = capacity * 2;
+        unsigned int new_capacity = capacity == 0 ? 4 : capacity * 2;
         int* new_data = new int[new_capacity];
+        
+        if (new_data == nullptr) {
+            return; // Allocation failed, keep old data
+        }
         
         for (unsigned int i = 0; i < size; i++) {
             new_data[i] = data[i];
@@ -23,30 +27,70 @@ private:
     }
     
 public:
-    SimpleVector() : data(nullptr), size(0), capacity(4) {
+    SimpleVector() : data(nullptr), size(0), capacity(0) {
+        capacity = 4;
         data = new int[capacity];
+    }
+    
+    // Copy constructor to prevent shallow copies
+    SimpleVector(const SimpleVector& other) : data(nullptr), size(0), capacity(0) {
+        capacity = other.capacity;
+        size = other.size;
+        data = new int[capacity];
+        
+        if (data != nullptr) {
+            for (unsigned int i = 0; i < size; i++) {
+                data[i] = other.data[i];
+            }
+        }
+    }
+    
+    // Assignment operator
+    SimpleVector& operator=(const SimpleVector& other) {
+        if (this != &other) {
+            delete[] data;
+            
+            capacity = other.capacity;
+            size = other.size;
+            data = new int[capacity];
+            
+            if (data != nullptr) {
+                for (unsigned int i = 0; i < size; i++) {
+                    data[i] = other.data[i];
+                }
+            }
+        }
+        return *this;
     }
     
     ~SimpleVector() {
         delete[] data;
     }
     
-    void push_back(int value) {
+    bool push_back(int value) {
         if (size >= capacity) {
             expand();
+            if (size >= capacity) {
+                return false; // Expansion failed
+            }
         }
         data[size++] = value;
+        return true;
     }
     
     int get(unsigned int index) const {
-        if (index < size) {
-            return data[index];
+        if (index >= size) {
+            return -1; // Out of bounds
         }
-        return -1;
+        return data[index];
     }
     
     unsigned int get_size() const {
         return size;
+    }
+    
+    bool is_valid() const {
+        return data != nullptr;
     }
 };
 
@@ -66,6 +110,11 @@ public:
     }
     
     void init() {
+        if (test_data == nullptr || !test_data->is_valid()) {
+            terminal_writestring("  Driver initialization failed: memory allocation error\n");
+            return;
+        }
+        
         initialized = true;
         terminal_writestring("  Driver '");
         terminal_writestring(name);
@@ -78,9 +127,17 @@ public:
             return;
         }
         
+        if (test_data == nullptr) {
+            terminal_writestring("  Test data unavailable!\n");
+            return;
+        }
+        
         terminal_writestring("  Populating test data...\n");
         for (int i = 0; i < 5; i++) {
-            test_data->push_back(i * 10);
+            if (!test_data->push_back(i * 10)) {
+                terminal_writestring("  Warning: failed to add test data\n");
+                break;
+            }
         }
         
         terminal_writestring("  Test data: ");
@@ -109,7 +166,7 @@ private:
             return;
         }
         
-        while (num > 0) {
+        while (num > 0 && i < 11) { // Prevent buffer overflow
             buffer[i++] = '0' + (num % 10);
             num /= 10;
         }
@@ -128,25 +185,44 @@ static Driver* global_driver = nullptr;
 
 extern "C" void cpp_driver_init() {
     global_driver = new Driver("VirtualDevice");
-    global_driver->init();
+    if (global_driver != nullptr) {
+        global_driver->init();
+    }
 }
 
 extern "C" void cpp_driver_test() {
-    if (global_driver) {
+    if (global_driver != nullptr) {
         global_driver->run_test();
     }
 }
 
-void* operator new(unsigned long size) {
-    static char heap[8192];
-    static unsigned long heap_offset = 0;
+// Improved heap allocator with alignment and bounds checking
+namespace {
+    constexpr unsigned long HEAP_SIZE = 8192;
+    constexpr unsigned long ALIGNMENT = 8; // 8-byte alignment
     
-    if (heap_offset + size > sizeof(heap)) {
-        return nullptr;
+    char heap[HEAP_SIZE];
+    unsigned long heap_offset = 0;
+    
+    // Align size to ALIGNMENT boundary
+    unsigned long align_size(unsigned long size) {
+        return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
+    }
+}
+
+void* operator new(unsigned long size) {
+    if (size == 0) {
+        size = 1; // Minimum allocation
+    }
+    
+    unsigned long aligned_size = align_size(size);
+    
+    if (heap_offset + aligned_size > HEAP_SIZE) {
+        return nullptr; // Out of memory
     }
     
     void* ptr = &heap[heap_offset];
-    heap_offset += size;
+    heap_offset += aligned_size;
     
     return ptr;
 }
@@ -156,13 +232,17 @@ void* operator new[](unsigned long size) {
 }
 
 void operator delete(void*) noexcept {
+    // Simple allocator doesn't support deallocation
 }
 
 void operator delete[](void*) noexcept {
+    // Simple allocator doesn't support deallocation
 }
 
 void operator delete(void*, unsigned long) noexcept {
+    // Simple allocator doesn't support deallocation
 }
 
 void operator delete[](void*, unsigned long) noexcept {
+    // Simple allocator doesn't support deallocation
 }
