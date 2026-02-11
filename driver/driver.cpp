@@ -212,7 +212,7 @@ namespace {
     }
 }
 
-void* operator new(__SIZE_TYPE__ size) {
+void* operator new(__SIZE_TYPE__ size) noexcept {
     if (size == 0) {
         size = 1;
     }
@@ -229,7 +229,7 @@ void* operator new(__SIZE_TYPE__ size) {
     return ptr;
 }
 
-void* operator new[](__SIZE_TYPE__ size) {
+void* operator new[](__SIZE_TYPE__ size) noexcept {
     return operator new(size);
 }
 
