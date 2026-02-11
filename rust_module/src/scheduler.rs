@@ -46,7 +46,7 @@ impl RoundRobinScheduler {
         for slot in self.tasks.iter_mut() {
             if slot.is_none() {
                 let task_id = self.next_task_id;
-                self.next_task_id += 1;
+                self.next_task_id = self.next_task_id.wrapping_add(1);
                 
                 *slot = Some(Task {
                     id: task_id,
@@ -62,6 +62,22 @@ impl RoundRobinScheduler {
         }
         
         None
+    }
+    
+    pub fn terminate_task(&mut self, task_id: u32) -> bool {
+        for (idx, slot) in self.tasks.iter_mut().enumerate() {
+            if let Some(task) = slot {
+                if task.id == task_id {
+                    *slot = None;
+                    self.task_count = self.task_count.saturating_sub(1);
+                    if idx == self.current_task_idx {
+                        self.current_task_idx = 0;
+                    }
+                    return true;
+                }
+            }
+        }
+        false
     }
     
     pub fn schedule_next(&mut self) -> Option<u32> {
