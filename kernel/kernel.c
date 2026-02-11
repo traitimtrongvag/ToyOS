@@ -98,15 +98,17 @@ void terminal_putchar(char c) {
         case '\r':
             terminal_column = 0;
             return;
-        case '\t':
-            /* Align to next tab stop */
-            do {
+        case '\t': {
+            size_t spaces_to_add = TAB_WIDTH - (terminal_column % TAB_WIDTH);
+            for (size_t i = 0; i < spaces_to_add && terminal_column < VGA_WIDTH; i++) {
                 terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
-                if (++terminal_column == VGA_WIDTH) {
-                    terminal_newline();
-                }
-            } while (terminal_column % TAB_WIDTH != 0 && terminal_column < VGA_WIDTH);
+                terminal_column++;
+            }
+            if (terminal_column >= VGA_WIDTH) {
+                terminal_newline();
+            }
             return;
+        }
         case '\b':
             /* Backspace: move cursor back one position if possible */
             if (terminal_column > 0) {
