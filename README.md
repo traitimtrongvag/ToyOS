@@ -1,5 +1,7 @@
 # ToyOS
 
+[![Build Status](https://github.com/traitimtrongvag/ToyOS/actions/workflows/build.yml/badge.svg)](https://github.com/traitimtrongvag/ToyOS/actions/workflows/build.yml)
+
 A minimal operating system kernel demonstrating multi-language systems programming.
 
 ## About
