@@ -1,0 +1,71 @@
+Timer API
+
+
+CONSTANTS
+
+PIT_FREQUENCY        1193180   Base frequency of PIT chip
+PIT_COMMAND_PORT     0x43      PIT command register
+PIT_CHANNEL0_PORT    0x40      PIT channel 0 data port
+
+
+INITIALIZATION
+
+void timer_init(uint32_t frequency)
+
+  Initialize the Programmable Interval Timer.
+  
+  Configures PIT to generate interrupts at specified frequency.
+  Resets tick counter to zero.
+  
+  Parameters:
+    frequency   Desired interrupt frequency in Hz
+  
+  Returns: Nothing
+  
+  Example:
+    timer_init(100);  // 100 ticks per second
+
+
+CALLBACK
+
+void timer_callback(void)
+
+  Called on each timer interrupt.
+  
+  Increments internal tick counter.
+  Should be registered as IRQ 0 handler.
+  
+  Parameters: None
+  Returns: Nothing
+
+
+QUERY FUNCTIONS
+
+uint32_t timer_get_ticks(void)
+
+  Get current tick count.
+  
+  Returns number of timer interrupts since initialization.
+  
+  Parameters: None
+  
+  Returns:
+    Current tick count
+
+
+DELAY FUNCTIONS
+
+void timer_wait(uint32_t ticks)
+
+  Busy-wait for specified number of ticks.
+  
+  Halts CPU until tick count increases by specified amount.
+  Relies on timer interrupts being enabled.
+  
+  Parameters:
+    ticks   Number of ticks to wait
+  
+  Returns: Nothing
+  
+  Example:
+    timer_wait(100);  // Wait 1 second at 100 Hz

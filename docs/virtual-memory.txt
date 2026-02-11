@@ -1,0 +1,89 @@
+Virtual Memory
+
+
+PAGING SUBSYSTEM
+
+Manages virtual to physical address translation using x86 page tables.
+
+Page size: 4KB (4096 bytes)
+Page directory entries: 1024
+Page table entries per directory: 1024
+Total addressable space: 4GB
+
+
+PAGE DIRECTORY
+
+Top-level paging structure at CR3.
+
+Entry format:
+  Bit 0:     Present flag
+  Bit 1:     Read/write flag  
+  Bit 2:     User/supervisor flag
+  Bits 12-31: Page table physical address
+
+Located in kernel/paging.c, aligned to 4KB boundary.
+
+
+PAGE TABLE
+
+Second-level structure, 1024 entries.
+
+Entry format:
+  Bit 0:     Present flag
+  Bit 1:     Read/write flag
+  Bit 2:     User/supervisor flag  
+  Bit 6:     Dirty flag
+  Bit 5:     Accessed flag
+  Bits 12-31: Physical frame address
+
+
+INITIALIZATION
+
+Flow in paging_init():
+
+  1. Zero all page directory entries
+  2. Initialize 1024 page tables
+  3. Mark all pages as not present
+  4. Set read/write and kernel flags
+  5. Load page directory to CR3
+  6. Enable paging bit in CR0
+
+
+ADDRESS TRANSLATION
+
+Virtual address (32-bit):
+  Bits 22-31: Page directory index (10 bits)
+  Bits 12-21: Page table index (10 bits)
+  Bits 0-11:  Offset within page (12 bits)
+
+Translation steps:
+  1. Extract directory index from virtual address
+  2. Look up page table in directory
+  3. Extract table index from virtual address  
+  4. Look up physical frame in table
+  5. Combine frame address with offset
+
+
+FUNCTIONS
+
+Located in kernel/paging.c and kernel/paging.h:
+
+  paging_init()
+    Initialize paging system
+
+  paging_map_page(virtual, physical, flags)
+    Map virtual address to physical frame
+
+  paging_unmap_page(virtual)
+    Remove page mapping
+
+  paging_get_physical_address(virtual)
+    Translate virtual to physical address
+
+
+CURRENT STATE
+
+- Identity mapping not yet configured
+- No user space pages allocated
+- No demand paging implemented  
+- Page fault handler not installed

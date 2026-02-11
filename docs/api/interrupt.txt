@@ -1,0 +1,79 @@
+Interrupt API
+
+
+IDT FUNCTIONS
+
+void idt_init(void)
+
+  Initialize the Interrupt Descriptor Table.
+  
+  Sets up 256 interrupt entries and loads IDT register.
+  Must be called early in kernel initialization.
+  
+  Parameters: None
+  Returns: Nothing
+  
+  Side effects:
+    - Clears all IDT entries
+    - Loads IDTR with table address
+
+
+void idt_set_gate(uint8_t num, uint32_t base, uint16_t selector, uint8_t flags)
+
+  Configure a specific interrupt gate.
+  
+  Parameters:
+    num       Interrupt vector (0-255)
+    base      Handler function address
+    selector  Code segment selector (usually 0x08)
+    flags     Gate type and privilege level
+  
+  Returns: Nothing
+  
+  Common flag values:
+    0x8E: 32-bit interrupt gate, ring 0
+    0x8F: 32-bit trap gate, ring 0
+    0xEE: 32-bit interrupt gate, ring 3
+
+
+PIC FUNCTIONS
+
+void pic_remap(uint8_t offset1, uint8_t offset2)
+
+  Remap PIC interrupt vectors.
+  
+  Parameters:
+    offset1   Base vector for PIC1 (typically 0x20)
+    offset2   Base vector for PIC2 (typically 0x28)
+  
+  Returns: Nothing
+
+
+void pic_send_eoi(uint8_t irq)
+
+  Send End Of Interrupt signal.
+  
+  Parameters:
+    irq   IRQ number (0-15)
+  
+  Returns: Nothing
+
+
+void irq_set_mask(uint8_t irq_line)
+
+  Disable specific IRQ line.
+  
+  Parameters:
+    irq_line   IRQ to mask (0-15)
+  
+  Returns: Nothing
+
+
+void irq_clear_mask(uint8_t irq_line)
+
+  Enable specific IRQ line.
+  
+  Parameters:
+    irq_line   IRQ to unmask (0-15)
+  
+  Returns: Nothing
