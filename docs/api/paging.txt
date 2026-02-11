@@ -1,0 +1,82 @@
+Paging API
+
+
+INITIALIZATION
+
+void paging_init(void)
+
+  Initialize the paging subsystem.
+  
+  Sets up kernel page directory and tables, then enables paging.
+  Must be called before any virtual memory operations.
+  
+  Parameters: None
+  Returns: Nothing
+  
+  Side effects:
+    - Creates kernel page directory
+    - Initializes 1024 page tables
+    - Sets CR3 to page directory address
+    - Enables paging bit in CR0
+
+
+MAPPING FUNCTIONS
+
+void paging_map_page(uint32_t virtual_addr, uint32_t physical_addr, uint32_t flags)
+
+  Map a virtual address to a physical frame.
+  
+  Parameters:
+    virtual_addr   Virtual address to map (should be page-aligned)
+    physical_addr  Physical frame address (should be page-aligned)
+    flags          Page protection flags
+  
+  Returns: Nothing
+  
+  Valid flags (can be OR'd):
+    PAGE_PRESENT   0x1   Page is present in memory
+    PAGE_WRITE     0x2   Page is writable
+    PAGE_USER      0x4   Page accessible from user mode
+
+
+void paging_unmap_page(uint32_t virtual_addr)
+
+  Remove virtual to physical mapping.
+  
+  Parameters:
+    virtual_addr   Virtual address to unmap
+  
+  Returns: Nothing
+  
+  Side effects:
+    - Marks page as not present
+    - Clears physical frame reference
+
+
+ADDRESS TRANSLATION
+
+uint32_t paging_get_physical_address(uint32_t virtual_addr)
+
+  Translate virtual address to physical address.
+  
+  Parameters:
+    virtual_addr   Virtual address to translate
+  
+  Returns:
+    Physical address, or 0 if page not present
+  
+  Notes:
+    - Preserves page offset (lower 12 bits)
+    - Returns 0 for unmapped pages
+
+
+DIRECTORY ACCESS
+
+page_directory_t* paging_get_current_directory(void)
+
+  Get pointer to current page directory.
+  
+  Parameters: None
+  
+  Returns:
+    Pointer to active page directory structure
