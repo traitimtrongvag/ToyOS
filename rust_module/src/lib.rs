@@ -35,7 +35,6 @@ static ALLOCATED_PAGES: AtomicU32 = AtomicU32::new(0);
 static NEXT_PAGE: AtomicU32 = AtomicU32::new(MIN_PAGE_ADDR);
 
 struct MemoryManager {
-    total_pages: u32,
     free_pages: UnsafeCell<u32>,
 }
 
@@ -44,7 +43,6 @@ unsafe impl Sync for MemoryManager {}
 impl MemoryManager {
     const fn new() -> Self {
         Self {
-            total_pages: TOTAL_PAGES,
             free_pages: UnsafeCell::new(TOTAL_PAGES),
         }
     }
@@ -210,24 +208,27 @@ pub extern "C" fn rust_is_valid_page(page: u32) -> bool {
 #[no_mangle]
 pub extern "C" fn rust_pool_allocate() -> *mut u8 {
     unsafe {
-        GLOBAL_MEMORY_POOL.allocate_block().unwrap_or(core::ptr::null_mut())
+        let pool = &mut *core::ptr::addr_of_mut!(GLOBAL_MEMORY_POOL);
+        pool.allocate_block().unwrap_or(core::ptr::null_mut())
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_pool_free(ptr: *mut u8) -> bool {
     unsafe {
-        GLOBAL_MEMORY_POOL.free_block(ptr)
+        let pool = &mut *core::ptr::addr_of_mut!(GLOBAL_MEMORY_POOL);
+        pool.free_block(ptr)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_pool_stats() {
     unsafe {
+        let pool = &*core::ptr::addr_of!(GLOBAL_MEMORY_POOL);
         print_str("  Pool allocated: ");
-        print_u32(GLOBAL_MEMORY_POOL.get_allocated_count() as u32);
+        print_u32(pool.get_allocated_count() as u32);
         print_str("\n  Pool free: ");
-        print_u32(GLOBAL_MEMORY_POOL.get_free_count() as u32);
+        print_u32(pool.get_free_count() as u32);
         print_str("\n");
     }
 }
@@ -242,23 +243,24 @@ pub extern "C" fn rust_process_create(priority: u8, name: *const u8) -> u32 {
         let name_len = utils::string_length(name);
         let name_slice = core::slice::from_raw_parts(name, name_len);
         
-        GLOBAL_PROCESS_MANAGER
-            .create_process(priority, name_slice)
-            .unwrap_or(0)
+        let manager = &mut *core::ptr::addr_of_mut!(GLOBAL_PROCESS_MANAGER);
+        manager.create_process(priority, name_slice).unwrap_or(0)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_process_terminate(pid: u32) -> bool {
     unsafe {
-        GLOBAL_PROCESS_MANAGER.terminate_process(pid)
+        let manager = &mut *core::ptr::addr_of_mut!(GLOBAL_PROCESS_MANAGER);
+        manager.terminate_process(pid)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_process_schedule() -> u32 {
     unsafe {
-        GLOBAL_PROCESS_MANAGER.schedule_next().unwrap_or(0)
+        let manager = &mut *core::ptr::addr_of_mut!(GLOBAL_PROCESS_MANAGER);
+        manager.schedule_next().unwrap_or(0)
     }
 }
 
@@ -282,14 +284,16 @@ pub extern "C" fn rust_ipc_send(
             _ => ipc::MessageType::Empty,
         };
         
-        GLOBAL_MESSAGE_QUEUE.send_message(msg_type_enum, sender_pid, receiver_pid, data_slice)
+        let queue = &mut *core::ptr::addr_of_mut!(GLOBAL_MESSAGE_QUEUE);
+        queue.send_message(msg_type_enum, sender_pid, receiver_pid, data_slice)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn rust_ipc_has_message(receiver_pid: u32) -> bool {
     unsafe {
-        GLOBAL_MESSAGE_QUEUE.has_message_for(receiver_pid)
+        let queue = &*core::ptr::addr_of!(GLOBAL_MESSAGE_QUEUE);
+        queue.has_message_for(receiver_pid)
     }
 }
 
