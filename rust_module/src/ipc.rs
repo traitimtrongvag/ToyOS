@@ -1,5 +1,3 @@
-#![no_std]
-
 const MAX_MESSAGES: usize = 64;
 const MESSAGE_DATA_SIZE: usize = 128;
 
