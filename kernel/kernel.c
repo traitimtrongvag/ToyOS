@@ -157,7 +157,7 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     terminal_writestring("[Rust] Allocating test page...\n");
-    uint32_t page = rust_allocate_page();
+    rust_allocate_page();
     
     terminal_writestring("[Rust] Memory statistics:\n");
     rust_print_stats();
