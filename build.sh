@@ -18,6 +18,9 @@ echo "[3/4] Compiling kernel..."
 gcc -m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -O2 \
     -c kernel/kernel.c -o build/kernel.o
 
+gcc -m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -O2 \
+    -c kernel/memory_funcs.c -o build/memory_funcs.o
+
 echo "[4/4] Compiling C++ driver..."
 g++ -m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector \
     -fno-exceptions -fno-rtti -Wall -O2 \
@@ -27,13 +30,13 @@ echo "Linking..."
 GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
     ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
-        build/boot.o build/kernel.o build/driver.o \
+        build/boot.o build/kernel.o build/memory_funcs.o build/driver.o \
         rust_module/target/i686-unknown-linux-gnu/release/librust_module.a \
         -L"$GCC_LIB_PATH" -lgcc
 else
     echo "Note: Building without libgcc"
     ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
-        build/boot.o build/kernel.o build/driver.o \
+        build/boot.o build/kernel.o build/memory_funcs.o build/driver.o \
         rust_module/target/i686-unknown-linux-gnu/release/librust_module.a
 fi
 
