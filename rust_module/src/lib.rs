@@ -97,16 +97,26 @@ pub extern "C" fn rust_allocate_page() -> u32 {
         return 0;
     }
     
-    let page = NEXT_PAGE.fetch_add(PAGE_SIZE, Ordering::SeqCst);
-    
-    if page >= MAX_PAGE_ADDR {
-        return 0;
+    loop {
+        let current_page = NEXT_PAGE.load(Ordering::SeqCst);
+        
+        if current_page >= MAX_PAGE_ADDR {
+            return 0;
+        }
+        
+        let next_page = current_page + PAGE_SIZE;
+        
+        if NEXT_PAGE.compare_exchange(
+            current_page,
+            next_page,
+            Ordering::SeqCst,
+            Ordering::SeqCst
+        ).is_ok() {
+            ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
+            MEMORY_MANAGER.decrement_free_pages();
+            return current_page;
+        }
     }
-    
-    ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
-    MEMORY_MANAGER.decrement_free_pages();
-    
-    page
 }
 
 #[no_mangle]
