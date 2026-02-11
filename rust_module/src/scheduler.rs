@@ -1,5 +1,3 @@
-#![no_std]
-
 const MAX_TASKS: usize = 32;
 const DEFAULT_TIME_SLICE: u32 = 10;
 
@@ -87,6 +85,8 @@ impl RoundRobinScheduler {
         
         let start_idx = self.current_task_idx;
         let mut attempts = 0;
+        let mut found_idx = None;
+        let mut found_id = None;
         
         loop {
             let idx = (start_idx + attempts) % MAX_TASKS;
@@ -96,17 +96,25 @@ impl RoundRobinScheduler {
                 break;
             }
             
-            if let Some(task) = &mut self.tasks[idx] {
+            if let Some(task) = &self.tasks[idx] {
                 if task.state == TaskState::Ready {
-                    self.mark_current_as_ready();
-                    
-                    task.state = TaskState::Running;
-                    task.remaining_time = task.time_slice;
-                    self.current_task_idx = idx;
-                    
-                    return Some(task.id);
+                    found_idx = Some(idx);
+                    found_id = Some(task.id);
+                    break;
                 }
             }
+        }
+        
+        if let (Some(idx), Some(id)) = (found_idx, found_id) {
+            self.mark_current_as_ready();
+            
+            if let Some(task) = &mut self.tasks[idx] {
+                task.state = TaskState::Running;
+                task.remaining_time = task.time_slice;
+                self.current_task_idx = idx;
+            }
+            
+            return Some(id);
         }
         
         None
