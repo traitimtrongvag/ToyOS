@@ -200,29 +200,27 @@ extern "C" void cpp_driver_test() {
     }
 }
 
-// Improved heap allocator with alignment and bounds checking
 namespace {
-    constexpr unsigned long HEAP_SIZE = 8192;
-    constexpr unsigned long ALIGNMENT = 8; // 8-byte alignment
+    constexpr __SIZE_TYPE__ HEAP_SIZE = 8192;
+    constexpr __SIZE_TYPE__ ALIGNMENT = 8;
     
     char heap[HEAP_SIZE];
-    unsigned long heap_offset = 0;
+    __SIZE_TYPE__ heap_offset = 0;
     
-    // Align size to ALIGNMENT boundary
-    unsigned long align_size(unsigned long size) {
+    __SIZE_TYPE__ align_size(__SIZE_TYPE__ size) {
         return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
     }
 }
 
-void* operator new(unsigned long size) {
+void* operator new(__SIZE_TYPE__ size) {
     if (size == 0) {
-        size = 1; // Minimum allocation
+        size = 1;
     }
     
-    unsigned long aligned_size = align_size(size);
+    __SIZE_TYPE__ aligned_size = align_size(size);
     
     if (heap_offset + aligned_size > HEAP_SIZE) {
-        return nullptr; // Out of memory
+        return nullptr;
     }
     
     void* ptr = &heap[heap_offset];
@@ -231,22 +229,18 @@ void* operator new(unsigned long size) {
     return ptr;
 }
 
-void* operator new[](unsigned long size) {
+void* operator new[](__SIZE_TYPE__ size) {
     return operator new(size);
 }
 
 void operator delete(void*) noexcept {
-    // Simple allocator doesn't support deallocation
 }
 
 void operator delete[](void*) noexcept {
-    // Simple allocator doesn't support deallocation
 }
 
-void operator delete(void*, unsigned long) noexcept {
-    // Simple allocator doesn't support deallocation
+void operator delete(void*, __SIZE_TYPE__) noexcept {
 }
 
-void operator delete[](void*, unsigned long) noexcept {
-    // Simple allocator doesn't support deallocation
+void operator delete[](void*, __SIZE_TYPE__) noexcept {
 }
