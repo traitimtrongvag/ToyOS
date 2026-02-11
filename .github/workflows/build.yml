@@ -23,7 +23,7 @@ jobs:
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly
         target: i686-unknown-linux-gnu
         override: true
         
