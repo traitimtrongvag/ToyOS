@@ -34,12 +34,12 @@ jobs:
         
     - name: Check build artifacts
       run: |
-        ls -lh kernel.bin || echo "kernel.bin not found"
-        file kernel.bin || echo "Cannot check file type"
+        ls -lh build/toyos.elf
+        file build/toyos.elf
         
     - name: Upload kernel artifact
       uses: actions/upload-artifact@v4
       with:
         name: toyos-kernel
-        path: kernel.bin
+        path: build/toyos.elf
         retention-days: 30
