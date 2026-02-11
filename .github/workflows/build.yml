@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc g++ gcc-multilib g++-multilib qemu-system-x86 binutils make
+        
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: i686-unknown-linux-gnu
+        override: true
+        
+    - name: Build kernel
+      run: |
+        chmod +x build.sh
+        ./build.sh
+        
+    - name: Check build artifacts
+      run: |
+        ls -lh kernel.bin || echo "kernel.bin not found"
+        file kernel.bin || echo "Cannot check file type"
+        
+    - name: Upload kernel artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: toyos-kernel
+        path: kernel.bin
+        retention-days: 30
