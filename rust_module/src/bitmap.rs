@@ -1,5 +1,3 @@
-#![no_std]
-
 const BITMAP_SIZE: usize = 256;
 const BITS_PER_BYTE: usize = 8;
 

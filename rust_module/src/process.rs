@@ -1,5 +1,3 @@
-#![no_std]
-
 const MAX_PROCESSES: usize = 32;
 const PROCESS_NAME_LEN: usize = 16;
 

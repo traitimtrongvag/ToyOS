@@ -1,5 +1,3 @@
-#![no_std]
-
 pub fn align_up(addr: usize, align: usize) -> usize {
     if align == 0 {
         return addr;

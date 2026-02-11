@@ -1,5 +1,3 @@
-#![no_std]
-
 const POOL_BLOCK_SIZE: usize = 64;
 const POOL_BLOCK_COUNT: usize = 256;
 
