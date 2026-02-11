@@ -156,17 +156,21 @@ private:
         int i = 0;
         bool negative = false;
         
-        if (num < 0) {
-            negative = true;
-            num = -num;
-        }
-        
         if (num == 0) {
             terminal_putchar('0');
             return;
         }
         
-        while (num > 0 && i < 11) { // Prevent buffer overflow
+        if (num < 0) {
+            negative = true;
+            if (num == -2147483648) {
+                terminal_writestring("-2147483648");
+                return;
+            }
+            num = -num;
+        }
+        
+        while (num > 0 && i < 11) {
             buffer[i++] = '0' + (num % 10);
             num /= 10;
         }
