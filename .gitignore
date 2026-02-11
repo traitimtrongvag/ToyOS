@@ -1,0 +1,11 @@
+build/
+*.o
+*.elf
+*.bin
+*.iso
+rust_module/target/
+rust_module/Cargo.lock
+*.swp
+*.swo
+*~
+.DS_Store
