@@ -1,0 +1,64 @@
+Interrupt Handling
+
+
+INTERRUPT DESCRIPTOR TABLE (IDT)
+
+The IDT maps interrupt vectors to handler addresses.
+
+Structure:
+  256 entries, each 8 bytes
+  Entry format:
+    base_low (16-bit)     Lower handler address
+    selector (16-bit)     Code segment selector  
+    zero (8-bit)          Reserved (must be 0)
+    flags (8-bit)         Gate type and DPL
+    base_high (16-bit)    Upper handler address
+
+
+INITIALIZATION
+
+Flow in idt_init():
+
+  1. Set IDT pointer (limit and base address)
+  2. Clear all 256 entries to zero
+  3. Load IDT register with lidt instruction
+
+Located in kernel/idt.c and kernel/idt_load.asm.
+
+
+GATE TYPES
+
+Trap Gate (0x8F):
+  Does not disable interrupts
+  Used for system calls
+
+Interrupt Gate (0x8E):  
+  Disables interrupts on entry
+  Used for hardware interrupts
+
+
+PROGRAMMABLE INTERRUPT CONTROLLER
+
+The 8259 PIC manages hardware interrupts.
+
+Ports:
+  PIC1: 0x20 (command), 0x21 (data)
+  PIC2: 0xA0 (command), 0xA1 (data)
+
+Remapping:
+  IRQ 0-7  mapped to INT 32-39
+  IRQ 8-15 mapped to INT 40-47
+
+Functions in kernel/pic.c:
+  pic_remap()         Initialize PIC with new offsets
+  pic_send_eoi()      Signal end of interrupt
+  irq_set_mask()      Disable specific IRQ line
+  irq_clear_mask()    Enable specific IRQ line
+
+
+LIMITATIONS
+
+- No interrupt handlers registered yet
+- No IRQ routing configured
+- ISRs not implemented
+- Exception handlers missing

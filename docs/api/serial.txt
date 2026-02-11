@@ -1,0 +1,79 @@
+Serial Communication API
+
+
+CONSTANTS
+
+SERIAL_COM1   0x3F8   COM1 base port
+SERIAL_COM2   0x2F8   COM2 base port  
+SERIAL_COM3   0x3E8   COM3 base port
+SERIAL_COM4   0x2E8   COM4 base port
+
+
+INITIALIZATION
+
+void serial_init(void)
+
+  Initialize serial port COM1.
+  
+  Configures baud rate, data format, and FIFO.
+  Default settings: 38400 baud, 8N1 format.
+  
+  Parameters: None
+  Returns: Nothing
+
+
+OUTPUT FUNCTIONS
+
+void serial_putchar(char c)
+
+  Write single character to serial port.
+  
+  Blocks until transmit buffer is ready.
+  
+  Parameters:
+    c   Character to send
+  
+  Returns: Nothing
+
+
+void serial_write(const char* str)
+
+  Write null-terminated string to serial port.
+  
+  Parameters:
+    str   String to send
+  
+  Returns: Nothing
+
+
+void serial_write_hex(uint32_t value)
+
+  Write 32-bit value in hexadecimal format.
+  
+  Outputs in format: 0xHHHHHHHH
+  
+  Parameters:
+    value   Number to display
+  
+  Returns: Nothing
+
+
+void serial_write_dec(uint32_t value)
+
+  Write 32-bit value in decimal format.
+  
+  Parameters:
+    value   Number to display
+  
+  Returns: Nothing
+
+
+USAGE NOTES
+
+Serial output is useful for:
+  - Debug logging without disturbing VGA display
+  - Early boot diagnostics before VGA initialized
+  - Automated testing via serial capture
+
+Access serial output in QEMU:
+  qemu-system-i386 -kernel kernel.elf -serial stdio

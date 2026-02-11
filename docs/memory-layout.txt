@@ -53,8 +53,7 @@ Simple bump allocator (no reuse of freed frames).
 
 LIMITATIONS
 
-- No paging/virtual memory
-- Identity mapping only
+- Identity mapping by default
 - 4MB allocation limit
-- No memory protection
-- No fragmentation handling
+- No memory protection without paging enabled
+- No fragmentation handling in allocator

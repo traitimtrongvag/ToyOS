@@ -6,6 +6,8 @@ Core Documentation:
   memory-layout.txt       Physical memory organization  
   build-system.txt        Compilation and linking
   kernel-core.txt         Terminal driver and main loop
+  interrupt-handling.txt  IDT and PIC configuration
+  virtual-memory.txt      Paging and address translation
   rust-integration.txt    FFI and memory allocator
   driver-layer.txt        C++ driver architecture
 
@@ -13,6 +15,10 @@ API Reference:
 
   api/terminal.txt        VGA output functions
   api/memory.txt          Page allocation functions
+  api/paging.txt          Virtual memory operations
+  api/interrupt.txt       IDT and PIC control
+  api/timer.txt           Timer initialization and delays
+  api/serial.txt          Serial port communication
   api/driver.txt          Driver subsystem
 
 ABI Specifications:
