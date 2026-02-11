@@ -25,12 +25,15 @@ endif
 
 # Source and object files
 BOOT_SRC = boot/boot.asm
-KERNEL_SRC = kernel/kernel.c
-DRIVER_SRC = driver/driver.cpp
+KERNEL_SRC = kernel/kernel.c kernel/string.c kernel/gdt.c kernel/pic.c kernel/serial.c kernel/timer.c
+DRIVER_SRC = driver/driver.cpp driver/keyboard.c driver/logger.cpp
+ASM_SRC = kernel/asm_utils.asm kernel/gdt_flush.asm kernel/interrupt.asm
 
 BOOT_OBJ = build/boot.o
-KERNEL_OBJ = build/kernel.o
-DRIVER_OBJ = build/driver.o
+KERNEL_OBJ = $(patsubst kernel/%.c,build/%.o,$(filter %.c,$(KERNEL_SRC)))
+ASM_OBJ = $(patsubst kernel/%.asm,build/%.o,$(ASM_SRC))
+DRIVER_OBJ = $(patsubst driver/%.cpp,build/driver_%.o,$(filter %.cpp,$(DRIVER_SRC))) \
+             $(patsubst driver/%.c,build/driver_%.o,$(filter %.c,$(DRIVER_SRC)))
 RUST_LIB = rust_module/target/i686-unknown-linux-gnu/release/librust_module.a
 
 # Header dependencies
@@ -57,17 +60,29 @@ build/boot.o: $(BOOT_SRC)
 	@echo "Assembling bootloader..."
 	$(NASM) -f elf32 $(BOOT_SRC) -o $(BOOT_OBJ)
 
-# Kernel object with header dependencies
-build/kernel.o: $(KERNEL_SRC) $(KERNEL_HEADERS)
+# Kernel C objects
+build/%.o: kernel/%.c $(KERNEL_HEADERS)
 	@mkdir -p build
-	@echo "Compiling kernel..."
-	$(CC) $(CFLAGS) -c $(KERNEL_SRC) -o $(KERNEL_OBJ)
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Driver object with header dependencies
-build/driver.o: $(DRIVER_SRC) $(DRIVER_HEADERS)
+# Assembly objects
+build/%.o: kernel/%.asm
 	@mkdir -p build
-	@echo "Compiling C++ driver..."
-	$(CXX) $(CXXFLAGS) -c $(DRIVER_SRC) -o $(DRIVER_OBJ)
+	@echo "Assembling $<..."
+	$(NASM) -f elf32 $< -o $@
+
+# C++ driver objects
+build/driver_%.o: driver/%.cpp $(DRIVER_HEADERS)
+	@mkdir -p build
+	@echo "Compiling $<..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# C driver objects
+build/driver_%.o: driver/%.c $(DRIVER_HEADERS)
+	@mkdir -p build
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Rust library
 $(RUST_LIB): rust_module/src/*.rs rust_module/Cargo.toml
@@ -75,9 +90,9 @@ $(RUST_LIB): rust_module/src/*.rs rust_module/Cargo.toml
 	cd rust_module && cargo build --release --target i686-unknown-linux-gnu
 
 # Final kernel binary
-build/toyos.elf: $(BOOT_OBJ) $(KERNEL_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
+build/toyos.elf: $(BOOT_OBJ) $(KERNEL_OBJ) $(ASM_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
 	@echo "Linking kernel..."
-	$(LD) $(LDFLAGS) -o build/toyos.elf $(BOOT_OBJ) $(KERNEL_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
+	$(LD) $(LDFLAGS) -o build/toyos.elf $(BOOT_OBJ) $(KERNEL_OBJ) $(ASM_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
 	@echo "Build complete: build/toyos.elf"
 
 # Run in QEMU
