@@ -1,14 +1,5 @@
+#include "pic.h"
 #include "port.h"
-#include <stdint.h>
-
-#define PIC1_COMMAND 0x20
-#define PIC1_DATA 0x21
-#define PIC2_COMMAND 0xA0
-#define PIC2_DATA 0xA1
-
-#define ICW1_ICW4 0x01
-#define ICW1_INIT 0x10
-#define ICW4_8086 0x01
 
 void pic_remap(uint8_t offset1, uint8_t offset2) {
     uint8_t mask1 = inb(PIC1_DATA);
@@ -39,17 +30,17 @@ void pic_remap(uint8_t offset1, uint8_t offset2) {
 }
 
 void pic_send_eoi(uint8_t irq) {
-    if(irq >= 8) {
-        outb(PIC2_COMMAND, 0x20);
+    if (irq >= 8) {
+        outb(PIC2_COMMAND, PIC_EOI);
     }
-    outb(PIC1_COMMAND, 0x20);
+    outb(PIC1_COMMAND, PIC_EOI);
 }
 
 void irq_set_mask(uint8_t irq_line) {
     uint16_t port;
     uint8_t value;
     
-    if(irq_line < 8) {
+    if (irq_line < 8) {
         port = PIC1_DATA;
     } else {
         port = PIC2_DATA;
@@ -63,7 +54,7 @@ void irq_clear_mask(uint8_t irq_line) {
     uint16_t port;
     uint8_t value;
     
-    if(irq_line < 8) {
+    if (irq_line < 8) {
         port = PIC1_DATA;
     } else {
         port = PIC2_DATA;

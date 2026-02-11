@@ -1,7 +1,5 @@
+#include "timer.h"
 #include "port.h"
-#include <stdint.h>
-
-extern void terminal_writestring(const char* s);
 
 static uint32_t tick_count = 0;
 
@@ -9,15 +7,19 @@ void timer_callback(void) {
     tick_count++;
 }
 
-void timer_phase(uint32_t hz) {
-    uint32_t divisor = 1193180 / hz;
-    outb(0x43, 0x36);
-    outb(0x40, divisor & 0xFF);
-    outb(0x40, (divisor >> 8) & 0xFF);
+static void timer_set_phase(uint32_t frequency) {
+    uint32_t divisor = PIT_FREQUENCY / frequency;
+    uint8_t low_byte = divisor & 0xFF;
+    uint8_t high_byte = (divisor >> 8) & 0xFF;
+    
+    outb(PIT_COMMAND_PORT, 0x36);
+    outb(PIT_CHANNEL0_PORT, low_byte);
+    outb(PIT_CHANNEL0_PORT, high_byte);
 }
 
 void timer_init(uint32_t frequency) {
-    timer_phase(frequency);
+    tick_count = 0;
+    timer_set_phase(frequency);
 }
 
 uint32_t timer_get_ticks(void) {
