@@ -24,10 +24,18 @@ g++ -m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector \
     -c driver/driver.cpp -o build/driver.o
 
 echo "Linking..."
-ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
-    build/boot.o build/kernel.o build/driver.o \
-    rust_module/target/i686-unknown-linux-gnu/release/librust_module.a \
-    -L/usr/lib/gcc/i686-linux-gnu/13 -lgcc
+GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
+if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
+    ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
+        build/boot.o build/kernel.o build/driver.o \
+        rust_module/target/i686-unknown-linux-gnu/release/librust_module.a \
+        -L"$GCC_LIB_PATH" -lgcc
+else
+    echo "Note: Building without libgcc"
+    ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
+        build/boot.o build/kernel.o build/driver.o \
+        rust_module/target/i686-unknown-linux-gnu/release/librust_module.a
+fi
 
 echo "Build complete: build/toyos.elf"
 echo ""
