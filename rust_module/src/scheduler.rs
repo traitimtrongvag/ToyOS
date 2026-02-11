@@ -5,6 +5,7 @@ const DEFAULT_TIME_SLICE: u32 = 10;
 pub struct Task {
     id: u32,
     state: TaskState,
+    #[allow(dead_code)]
     priority: u8,
     time_slice: u32,
     remaining_time: u32,
