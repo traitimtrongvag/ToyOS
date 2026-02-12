@@ -1,99 +1,214 @@
 Driver Layer
 
 
+OVERVIEW
+
+Driver subsystem provides hardware abstractions for VGA display, keyboard input,
+real-time clock, PC speaker, and logging facilities. Implemented in both C and
+freestanding C++ without standard library dependencies.
+
+
+VGA DRIVER (C++)
+
+Hardware text mode driver with cursor control.
+
+Class: VgaDriver
+Location: driver/driver.cpp
+
+Hardware registers:
+  VGA_CTRL_PORT     0x3D4    Index selection
+  VGA_DATA_PORT     0x3D5    Data read/write
+  VGA_MEMORY_ADDR   0xB8000  Display buffer
+
+Private methods:
+  makeEntry()             Combine char and color attribute
+  updateHardwareCursor()  Write cursor position to VGA registers
+  readHardwareCursor()    Read current cursor position
+  enableCursor()          Configure cursor scanlines
+  disableCursor()         Hide cursor via register 0x0A
+
+Public methods:
+  init()                  Enable underline cursor (lines 14-15)
+  setColor()              Set foreground/background color
+  writeAt()               Write character at specific position
+  writeStringAt()         Write string at position
+  clearRow()              Blank entire row
+  clearScreen()           Clear all rows, reset cursor
+  moveCursor()            Update cursor position
+  getCursorX/Y()          Read cursor coordinates
+  hideCursor()            Disable cursor
+  showCursor()            Enable cursor
+
+Exported C interface:
+  cpp_driver_init()       Initialize VGA driver
+  cpp_driver_test()       Run diagnostics
+  vga_write_at()
+  vga_write_string_at()
+  vga_move_cursor()
+  vga_clear_row()
+  vga_set_color()
+  vga_hide_cursor()
+  vga_show_cursor()
+
+
+KEYBOARD DRIVER (C)
+
+PS/2 keyboard with scancode translation and modifier tracking.
+
+Location: driver/keyboard.c
+
+Hardware interface:
+  KEYBOARD_DATA_PORT  0x60    Scancode input port
+
+Scancode tables:
+  scancode_table_normal[]     ASCII mapping for regular keys
+  scancode_table_shifted[]    ASCII mapping with Shift pressed
+
+State tracking:
+  shift_active        Left/Right Shift currently held
+  caps_lock_on        Caps Lock toggle state
+
+Functions:
+  apply_case()        Apply case conversion based on modifiers
+  resolve_char()      Translate scancode to ASCII character
+  keyboard_handler()  IRQ callback, processes scancodes
+  keyboard_init()     Reset driver state
+
+Supported keys:
+  - Alphanumeric and symbols
+  - Shift (left/right)
+  - Caps Lock
+  - Enter, Tab, Backspace, Space
+
+Key press/release detection via bit 7 of scancode.
+
+
+LOGGER (C++)
+
+Colored log message system with severity levels.
+
+Class: Logger
+Location: driver/logger.cpp
+
+Log levels:
+  LOG_INFO     Cyan (0x0B)      General information
+  LOG_WARNING  Yellow (0x0E)    Warning conditions
+  LOG_ERROR    Red (0x0C)       Error conditions
+  LOG_DEBUG    Gray (0x08)      Debug messages
+
+Methods:
+  info()      Log informational message
+  warning()   Log warning message
+  error()     Log error message
+  debug()     Log debug message
+  set_enabled()  Enable/disable logging
+
+Output format: [LEVEL] module_name: message
+
+Exported C interface:
+  cpp_logger_init()    Create system logger instance
+  cpp_log_info()       Log info from C code
+  cpp_log_warning()    Log warning from C code
+  cpp_log_error()      Log error from C code
+
+
+REAL-TIME CLOCK (C)
+
+CMOS RTC interface for reading system time.
+
+Location: driver/rtc.c
+
+Hardware registers:
+  CMOS_ADDR_PORT  0x70    Register selection
+  CMOS_DATA_PORT  0x71    Data access
+
+RTC registers:
+  RTC_REG_SECOND   0x00
+  RTC_REG_MINUTE   0x02
+  RTC_REG_HOUR     0x04
+  RTC_REG_DAY      0x07
+  RTC_REG_MONTH    0x08
+  RTC_REG_YEAR     0x09
+  RTC_REG_STATUS_A 0x0A
+  RTC_REG_STATUS_B 0x0B
+
+Functions:
+  cmos_read()              Read CMOS register
+  bcd_to_bin()             Convert BCD to binary
+  is_update_in_progress()  Check if RTC is updating
+  rtc_init()               Wait for RTC stability
+  rtc_read()               Read complete time structure
+  rtc_get_second/minute/hour()  Read individual fields
+
+Data structure:
+  rtc_time_t contains: second, minute, hour, day, month, year
+
+Handles both BCD and binary modes automatically.
+
+
+PC SPEAKER (C)
+
+Sound generation via programmable interval timer (PIT).
+
+Location: driver/speaker.c
+
+Hardware interface:
+  PIT_CHANNEL2_PORT  0x42    Channel 2 data port
+  PIT_CMD_CHANNEL2   0xB6    Square wave mode
+  SPEAKER_PORT       0x61    Speaker control port
+  PIT_FREQUENCY      1193180 Base frequency
+
+Functions:
+  pit_set_channel2()  Configure frequency divisor
+  speaker_init()      Disable speaker
+  speaker_play()      Enable speaker at frequency
+  speaker_stop()      Disable speaker
+  speaker_beep()      Play tone for duration
+
+Frequency calculation:
+  divisor = 1193180 / desired_frequency
+
+Duration handled by timer_wait() from kernel timer subsystem.
+
+
 FREESTANDING C++
 
-Kernel C++ challenges:
+Language constraints:
   - No standard library
-  - No dynamic allocation (custom new/delete)
-  - No exceptions
-  - No RTTI
+  - No dynamic allocation beyond custom new/delete
+  - No exceptions (-fno-exceptions)
+  - No RTTI (-fno-rtti)
+  - No complex templates
 
-Compilation flags:
-  -fno-exceptions -fno-rtti
-
-
-CUSTOM MEMORY
-
-Static heap implementation:
-  - 8KB buffer
-  - Bump allocator
-  - delete is no-op
-
-operator new/delete defined in driver/driver.cpp.
-
-
-SIMPLEVECTOR CLASS
-
-Minimal dynamic array:
-
-Members:
-  int* data
-  unsigned int size
-  unsigned int capacity
-
-Methods:
-  push_back(int)    Append element
-  get(index)        Retrieve element
-  get_size()        Current count
-
-Growth strategy: doubles capacity when full.
-
-
-DRIVER CLASS
-
-Generic device driver abstraction:
-
-Members:
-  const char* name
-  bool initialized
-  SimpleVector* test_data
-
-Methods:
-  init()            Initialize driver
-  run_test()        Execute test routine
-
-
-EXPORTED INTERFACE
-
-extern "C" prevents name mangling:
-
-cpp_driver_init()
-  Allocate and initialize driver
-
-cpp_driver_test()
-  Run driver test
-
-
-LANGUAGE FEATURES
-
-Supported:
-  - Classes and objects
-  - Constructors/destructors
-  - Member functions
+Supported features:
+  - Classes and constructors
   - Virtual functions
   - Single inheritance
+  - Member functions
+  - Operator overloading
 
-Not supported:
-  - Standard library (vector, string, etc.)
-  - Exceptions (disabled)
-  - RTTI (disabled)
-  - Complex templates
+Global objects with static storage duration are initialized before kernel_main().
 
 
-INTEGRATION WITH C
+C/C++ INTEGRATION
 
-C++ can:
-  - Call C functions via extern "C"
-  - Be called from C via extern "C" wrapper
+Boundary requirements:
+  - Use extern "C" for all kernel-visible functions
+  - Pass only POD types across boundary
+  - No C++ standard library types in interfaces
+  - Manual error handling via return codes
 
-Complex types should not cross boundary.
+C code can call C++ through extern "C" wrappers.
+C++ code can call C functions directly via extern "C" declarations.
 
 
-BEST PRACTICES
+DRIVER INITIALIZATION ORDER
 
-- Use extern "C" for kernel-visible functions
-- Keep object lifetimes simple
-- Avoid complex templates
-- Prefer static over dynamic allocation
-- Manual error handling (return codes)
+Called from kernel_main():
+  1. cpp_driver_init()    VGA driver
+  2. keyboard_init()      Keyboard driver
+  3. rtc_init()           RTC driver
+  4. speaker_init()       Speaker driver
+  5. cpp_logger_init()    Logger system
+
+Each driver self-registers and reports initialization status.
