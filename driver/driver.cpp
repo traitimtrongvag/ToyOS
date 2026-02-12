@@ -1,246 +1,173 @@
 extern "C" {
     void terminal_writestring(const char* s);
     void terminal_putchar(char c);
+    void terminal_setcolor(unsigned char color);
 }
 
-class SimpleVector {
-private:
-    int* data;
-    unsigned int size;
-    unsigned int capacity;
-    
-    void expand() {
-        unsigned int new_capacity = capacity == 0 ? 4 : capacity * 2;
-        int* new_data = new int[new_capacity];
-        
-        if (new_data == nullptr) {
-            return; // Allocation failed, keep old data
-        }
-        
-        for (unsigned int i = 0; i < size; i++) {
-            new_data[i] = data[i];
-        }
-        
-        delete[] data;
-        data = new_data;
-        capacity = new_capacity;
-    }
-    
-public:
-    SimpleVector() : data(nullptr), size(0), capacity(0) {
-        capacity = 4;
-        data = new int[capacity];
-    }
-    
-    // Copy constructor to prevent shallow copies
-    SimpleVector(const SimpleVector& other) : data(nullptr), size(0), capacity(0) {
-        capacity = other.capacity;
-        size = other.size;
-        data = new int[capacity];
-        
-        if (data != nullptr) {
-            for (unsigned int i = 0; i < size; i++) {
-                data[i] = other.data[i];
-            }
-        }
-    }
-    
-    // Assignment operator
-    SimpleVector& operator=(const SimpleVector& other) {
-        if (this != &other) {
-            delete[] data;
-            
-            capacity = other.capacity;
-            size = other.size;
-            data = new int[capacity];
-            
-            if (data != nullptr) {
-                for (unsigned int i = 0; i < size; i++) {
-                    data[i] = other.data[i];
-                }
-            }
-        }
-        return *this;
-    }
-    
-    ~SimpleVector() {
-        delete[] data;
-    }
-    
-    bool push_back(int value) {
-        if (size >= capacity) {
-            expand();
-            if (size >= capacity) {
-                return false; // Expansion failed
-            }
-        }
-        data[size++] = value;
-        return true;
-    }
-    
-    int get(unsigned int index) const {
-        if (index >= size) {
-            return -1; // Out of bounds
-        }
-        return data[index];
-    }
-    
-    unsigned int get_size() const {
-        return size;
-    }
-    
-    bool is_valid() const {
-        return data != nullptr;
-    }
-};
+static inline void outb_vga(unsigned short port, unsigned char val) {
+    __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port) : "memory");
+}
 
-class Driver {
+static inline unsigned char inb_vga(unsigned short port) {
+    unsigned char ret;
+    __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port) : "memory");
+    return ret;
+}
+
+// VGA hardware ports
+#define VGA_CTRL_PORT    0x3D4
+#define VGA_DATA_PORT    0x3D5
+#define VGA_WIDTH        80
+#define VGA_HEIGHT       25
+#define VGA_MEMORY_ADDR  0xB8000
+
+// Default color: white on black
+#define VGA_DEFAULT_COLOR 0x07
+
+class VgaDriver {
 private:
-    const char* name;
-    bool initialized;
-    SimpleVector* test_data;
-    
+    unsigned short* buffer;
+    unsigned char   color;
+    bool            initialized;
+
+    unsigned short makeEntry(char c, unsigned char col) {
+        return (unsigned short)c | ((unsigned short)col << 8);
+    }
+
+    void updateHardwareCursor(unsigned int pos) {
+        outb_vga(VGA_CTRL_PORT, 0x0F);
+        outb_vga(VGA_DATA_PORT, (unsigned char)(pos & 0xFF));
+        outb_vga(VGA_CTRL_PORT, 0x0E);
+        outb_vga(VGA_DATA_PORT, (unsigned char)((pos >> 8) & 0xFF));
+    }
+
+    unsigned int readHardwareCursor() {
+        unsigned int pos = 0;
+        outb_vga(VGA_CTRL_PORT, 0x0F);
+        pos |= inb_vga(VGA_DATA_PORT);
+        outb_vga(VGA_CTRL_PORT, 0x0E);
+        pos |= ((unsigned int)inb_vga(VGA_DATA_PORT)) << 8;
+        return pos;
+    }
+
+    void enableCursor(unsigned char start, unsigned char end) {
+        outb_vga(VGA_CTRL_PORT, 0x0A);
+        outb_vga(VGA_DATA_PORT, (inb_vga(VGA_DATA_PORT) & 0xC0) | start);
+        outb_vga(VGA_CTRL_PORT, 0x0B);
+        outb_vga(VGA_DATA_PORT, (inb_vga(VGA_DATA_PORT) & 0xE0) | end);
+    }
+
+    void disableCursor() {
+        outb_vga(VGA_CTRL_PORT, 0x0A);
+        outb_vga(VGA_DATA_PORT, 0x20);
+    }
+
 public:
-    Driver(const char* driver_name) : name(driver_name), initialized(false) {
-        test_data = new SimpleVector();
-    }
-    
-    ~Driver() {
-        delete test_data;
-    }
-    
+    VgaDriver()
+        : buffer((unsigned short*)VGA_MEMORY_ADDR),
+          color(VGA_DEFAULT_COLOR),
+          initialized(false) {}
+
     void init() {
-        if (test_data == nullptr || !test_data->is_valid()) {
-            terminal_writestring("  Driver initialization failed: memory allocation error\n");
-            return;
-        }
-        
+        enableCursor(14, 15);
         initialized = true;
-        terminal_writestring("  Driver '");
-        terminal_writestring(name);
-        terminal_writestring("' initialized\n");
+        terminal_writestring("  VGA driver initialized\n");
+        terminal_writestring("  Cursor: enabled (underline style)\n");
     }
-    
-    void run_test() {
-        if (!initialized) {
-            terminal_writestring("  Driver not initialized!\n");
-            return;
-        }
-        
-        if (test_data == nullptr) {
-            terminal_writestring("  Test data unavailable!\n");
-            return;
-        }
-        
-        terminal_writestring("  Populating test data...\n");
-        for (int i = 0; i < 5; i++) {
-            if (!test_data->push_back(i * 10)) {
-                terminal_writestring("  Warning: failed to add test data\n");
-                break;
-            }
-        }
-        
-        terminal_writestring("  Test data: ");
-        for (unsigned int i = 0; i < test_data->get_size(); i++) {
-            print_number(test_data->get(i));
-            if (i < test_data->get_size() - 1) {
-                terminal_writestring(", ");
-            }
-        }
-        terminal_writestring("\n");
+
+    void setColor(unsigned char fg, unsigned char bg) {
+        color = (bg << 4) | (fg & 0x0F);
     }
-    
-private:
-    void print_number(int num) {
-        char buffer[12];
-        int i = 0;
-        bool negative = false;
-        
-        if (num == 0) {
-            terminal_putchar('0');
-            return;
-        }
-        
-        if (num < 0) {
-            negative = true;
-            if (num == -2147483648) {
-                terminal_writestring("-2147483648");
-                return;
-            }
-            num = -num;
-        }
-        
-        while (num > 0 && i < 11) {
-            buffer[i++] = '0' + (num % 10);
-            num /= 10;
-        }
-        
-        if (negative) {
-            terminal_putchar('-');
-        }
-        
-        while (i > 0) {
-            terminal_putchar(buffer[--i]);
+
+    void writeAt(char c, unsigned int x, unsigned int y) {
+        if (!initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+        buffer[y * VGA_WIDTH + x] = makeEntry(c, color);
+    }
+
+    void writeStringAt(const char* str, unsigned int x, unsigned int y) {
+        if (!initialized) return;
+        while (*str && x < VGA_WIDTH) {
+            writeAt(*str++, x++, y);
         }
     }
+
+    void clearRow(unsigned int y) {
+        if (!initialized || y >= VGA_HEIGHT) return;
+        for (unsigned int x = 0; x < VGA_WIDTH; x++) {
+            buffer[y * VGA_WIDTH + x] = makeEntry(' ', color);
+        }
+    }
+
+    void clearScreen() {
+        if (!initialized) return;
+        for (unsigned int y = 0; y < VGA_HEIGHT; y++) {
+            clearRow(y);
+        }
+        updateHardwareCursor(0);
+    }
+
+    void moveCursor(unsigned int x, unsigned int y) {
+        if (!initialized || x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+        updateHardwareCursor(y * VGA_WIDTH + x);
+    }
+
+    unsigned int getCursorX() {
+        return readHardwareCursor() % VGA_WIDTH;
+    }
+
+    unsigned int getCursorY() {
+        return readHardwareCursor() / VGA_WIDTH;
+    }
+
+    void hideCursor() { disableCursor(); }
+    void showCursor() { enableCursor(14, 15); }
+
+    bool isInitialized() { return initialized; }
 };
 
-static Driver* global_driver = nullptr;
+static VgaDriver global_vga_driver;
 
 extern "C" void cpp_driver_init() {
-    global_driver = new Driver("VirtualDevice");
-    if (global_driver != nullptr) {
-        global_driver->init();
-    }
+    global_vga_driver.init();
 }
 
 extern "C" void cpp_driver_test() {
-    if (global_driver != nullptr) {
-        global_driver->run_test();
-    }
+    if (!global_vga_driver.isInitialized()) return;
+
+    terminal_writestring("  VGA cursor position: (");
+    terminal_putchar('0' + (char)global_vga_driver.getCursorX());
+    terminal_writestring(", ");
+    terminal_putchar('0' + (char)global_vga_driver.getCursorY());
+    terminal_writestring(")\n");
+    terminal_writestring("  VGA direct write: OK\n");
 }
 
-namespace {
-    constexpr __SIZE_TYPE__ HEAP_SIZE = 8192;
-    constexpr __SIZE_TYPE__ ALIGNMENT = 8;
-    
-    char heap[HEAP_SIZE];
-    __SIZE_TYPE__ heap_offset = 0;
-    
-    __SIZE_TYPE__ align_size(__SIZE_TYPE__ size) {
-        return (size + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
-    }
+extern "C" void vga_write_at(char c, unsigned int x, unsigned int y) {
+    global_vga_driver.writeAt(c, x, y);
 }
 
-void* operator new(__SIZE_TYPE__ size) noexcept {
-    if (size == 0) {
-        size = 1;
-    }
-    
-    __SIZE_TYPE__ aligned_size = align_size(size);
-    
-    if (heap_offset + aligned_size > HEAP_SIZE) {
-        return nullptr;
-    }
-    
-    void* ptr = &heap[heap_offset];
-    heap_offset += aligned_size;
-    
-    return ptr;
+extern "C" void vga_write_string_at(const char* str, unsigned int x, unsigned int y) {
+    global_vga_driver.writeStringAt(str, x, y);
 }
 
-void* operator new[](__SIZE_TYPE__ size) noexcept {
-    return operator new(size);
+extern "C" void vga_move_cursor(unsigned int x, unsigned int y) {
+    global_vga_driver.moveCursor(x, y);
 }
 
-void operator delete(void*) noexcept {
+extern "C" void vga_clear_row(unsigned int y) {
+    global_vga_driver.clearRow(y);
 }
 
-void operator delete[](void*) noexcept {
+extern "C" void vga_set_color(unsigned char fg, unsigned char bg) {
+    global_vga_driver.setColor(fg, bg);
 }
 
-void operator delete(void*, __SIZE_TYPE__) noexcept {
+extern "C" void vga_hide_cursor(void) {
+    global_vga_driver.hideCursor();
 }
 
-void operator delete[](void*, __SIZE_TYPE__) noexcept {
+extern "C" void vga_show_cursor(void) {
+    global_vga_driver.showCursor();
 }
+
+
