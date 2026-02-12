@@ -1,0 +1,163 @@
+Virtual File System (VFS)
+
+
+OVERVIEW
+
+Abstraction layer providing uniform interface for file operations.
+Enables multiple filesystem implementations with consistent API.
+
+Location: rust_module/src/vfs.rs, rust_module/src/memfs.rs
+
+
+FILE TYPES
+
+Supported types:
+  Regular       Standard file
+  Directory     Folder/directory
+  CharDevice    Character device
+  BlockDevice   Block device
+  SymLink       Symbolic link
+
+
+PERMISSIONS
+
+FilePermissions struct:
+  read          Read access flag
+  write         Write access flag
+  execute       Execute access flag
+
+Common presets:
+  readonly()    Read-only access
+  readwrite()   Read and write
+  executable()  Read and execute
+
+
+METADATA
+
+FileMetadata contains:
+  file_type     Type of file
+  permissions   Access permissions
+  size          File size in bytes
+  inode         Unique file identifier
+
+Helper methods:
+  is_dir()      Check if directory
+  is_file()     Check if regular file
+
+
+VFS TRAITS
+
+VfsNode trait:
+  name()        Get file name
+  metadata()    Get file metadata
+  read()        Read data from file
+  write()       Write data to file
+
+VfsDirectory trait:
+  lookup()      Find file by name
+  create()      Create new file
+  remove()      Delete file
+  list()        List directory contents
+
+
+IN-MEMORY FILESYSTEM
+
+Implementation: MemFs
+
+Characteristics:
+  - 64 maximum files
+  - 4KB per file limit
+  - 255 char filename limit
+  - No persistence
+
+Data structures:
+  MemFile       Individual file entry
+  MemFs         Filesystem container
+
+
+C FFI INTERFACE
+
+Functions exported to kernel:
+
+rust_vfs_init()
+  Initialize VFS subsystem
+
+rust_vfs_create(name, name_len, file_type)
+  Create new file
+  Returns: 0 success, -1 error
+
+rust_vfs_write(name, name_len, data, data_len)
+  Write data to file
+  Returns: bytes written, -1 error
+
+rust_vfs_read(name, name_len, buf, buf_len)
+  Read data from file
+  Returns: bytes read, -1 error
+
+
+ERROR HANDLING
+
+VfsError types:
+  NotFound          File does not exist
+  PermissionDenied  Access denied
+  AlreadyExists     File already exists
+  NotDirectory      Expected directory
+  IsDirectory       Expected file
+  InvalidPath       Path format error
+  OutOfSpace        No space available
+  IoError           Generic I/O error
+
+
+USAGE EXAMPLE
+
+From kernel C code:
+
+  rust_vfs_init();
+  
+  rust_vfs_create("hello.txt", 9, VFS_TYPE_REGULAR);
+  
+  const char* data = "Hello!";
+  rust_vfs_write("hello.txt", 9, data, 6);
+  
+  char buf[64];
+  int32_t bytes = rust_vfs_read("hello.txt", 9, buf, 64);
+
+
+DESIGN NOTES
+
+- Trait-based abstraction enables multiple FS backends
+- In-memory implementation for boot-time testing
+- FFI layer bridges Rust and C safely
+- Fixed-size buffers avoid dynamic allocation
+- No standard library dependencies
+
+
+FUTURE ENHANCEMENTS
+
+Potential additions:
+  - Block device filesystem
+  - Path resolution and traversal
+  - File descriptor table
+  - Mount point management
+  - File locking mechanisms
+  - Metadata caching
+
+
+INTEGRATION
+
+VFS integrates with:
+  - Kernel memory management
+  - Process management (future)
+  - Device driver layer
+  - System call interface (future)
+
+
+TESTING
+
+Test code: kernel/vfs_test.c
+
+Validates:
+  - File creation
+  - Write operations
+  - Read operations
+  - Data integrity
