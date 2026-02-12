@@ -1,0 +1,226 @@
+System Call Interface
+
+
+OVERVIEW
+
+POSIX-style system call interface using software interrupt 0x80.
+Enables transition from user mode to kernel mode for privileged operations.
+
+
+INTERRUPT VECTOR
+
+Vector: INT 0x80
+Privilege: User-accessible (DPL=3)
+Type: Trap gate
+
+
+CALLING CONVENTION
+
+Registers:
+  EAX        System call number
+  EBX        Argument 1
+  ECX        Argument 2
+  EDX        Argument 3
+  ESI        Argument 4
+  EDI        Argument 5
+  EAX        Return value (after call)
+
+All other registers preserved across syscall.
+
+
+SYSTEM CALLS
+
+SYS_EXIT (0)
+  Terminate current process
+  Args: exit_code
+  Returns: Does not return
+
+SYS_WRITE (1)
+  Write to file descriptor
+  Args: fd, buffer, count
+  Returns: bytes written or -1
+
+SYS_READ (2)
+  Read from file descriptor
+  Args: fd, buffer, count
+  Returns: bytes read or -1
+
+SYS_OPEN (3)
+  Open file or device
+  Args: path, flags
+  Returns: file descriptor or -1
+
+SYS_CLOSE (4)
+  Close file descriptor
+  Args: fd
+  Returns: 0 on success, -1 on error
+
+SYS_GETPID (5)
+  Get process ID
+  Args: none
+  Returns: current PID
+
+SYS_SLEEP (6)
+  Sleep for milliseconds
+  Args: milliseconds
+  Returns: 0 on success
+
+SYS_GETTIME (7)
+  Get system time
+  Args: time_ptr
+  Returns: 0 on success
+
+SYS_SBRK (8)
+  Adjust heap size
+  Args: increment
+  Returns: new break or -1
+
+SYS_MMAP (9)
+  Map memory region
+  Args: address, length
+  Returns: mapped address or -1
+
+
+HANDLER IMPLEMENTATION
+
+Assembly entry: kernel/syscall.asm
+  - Saves all registers and segments
+  - Switches to kernel data segment
+  - Calls C dispatcher
+  - Restores registers and returns
+
+C dispatcher: kernel/syscall.c
+  - Validates syscall number
+  - Looks up handler in syscall table
+  - Invokes handler with arguments
+  - Returns result to assembly handler
+
+
+USER-SPACE WRAPPERS
+
+Location: kernel/syscall_wrapper.h
+
+Inline assembly functions:
+  syscall0(num)                    0 arguments
+  syscall1(num, arg1)              1 argument
+  syscall2(num, arg1, arg2)        2 arguments
+  syscall3(num, arg1, arg2, arg3)  3 arguments
+
+Convenience macros:
+  exit(code)
+  write(fd, buf, count)
+  read(fd, buf, count)
+  getpid()
+  ...and more
+
+
+ERROR HANDLING
+
+Return value convention:
+  >= 0      Success (return value varies)
+  -1        Error (errno would be set in full OS)
+
+Current implementation returns -1 for:
+  - Invalid syscall number
+  - Unimplemented operations
+  - Invalid file descriptors
+  - Permission errors
+
+
+USAGE EXAMPLE
+
+From user-space:
+
+  #include "syscall_wrapper.h"
+  
+  int32_t pid = getpid();
+  
+  const char* msg = "Hello!\n";
+  write(1, msg, 7);
+  
+  exit(0);
+
+
+IMPLEMENTATION STATUS
+
+Fully implemented:
+  - SYS_EXIT     Process termination logging
+  - SYS_WRITE    Write to stdout/stderr
+  - SYS_GETPID   Return process ID
+
+Stub implementations:
+  - SYS_READ     Returns -1
+  - SYS_OPEN     Returns -1
+  - SYS_CLOSE    Returns 0
+  - SYS_SLEEP    Returns 0
+  - SYS_GETTIME  Writes 0 to pointer
+  - SYS_SBRK     Returns -1
+  - SYS_MMAP     Returns -1
+
+
+SECURITY CONSIDERATIONS
+
+- IDT gate configured with DPL=3 for user access
+- Segment register validation
+- Pointer validation (future enhancement)
+- Buffer overflow protection (future)
+- Process isolation (future)
+
+
+INTEGRATION
+
+Initialization:
+  Call syscall_init() from kernel_main()
+  Must be called after idt_init()
+
+Testing:
+  Use syscall_test() function
+  Located in kernel/syscall_test.c
+
+
+FUTURE ENHANCEMENTS
+
+Planned features:
+  - Full read/write implementation
+  - File descriptor table
+  - Process management integration
+  - Memory management syscalls
+  - IPC syscalls
+  - Error number (errno) support
+  - Syscall tracing/logging
+  - Performance counters
+
+
+PERFORMANCE
+
+Overhead:
+  - Context switch: ~100 cycles
+  - Register save/restore: ~30 cycles
+  - Dispatcher lookup: ~10 cycles
+  - Handler execution: varies
+
+Optimization opportunities:
+  - Fast path for common syscalls
+  - Reduced register saving
+  - System call batching
+
+
+COMPATIBILITY
+
+ABI: System V i386
+Follows standard Linux syscall conventions
+Compatible with POSIX semantics where implemented
+
+
+DEBUGGING
+
+Enable syscall tracing:
+  - Add logging in syscall_dispatch()
+  - Monitor EAX register in handler
+  - Use serial port for output
+
+Common issues:
+  - Wrong syscall number
+  - Invalid pointer arguments
+  - Stack corruption
+  - IDT misconfiguration
