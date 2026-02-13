@@ -13,6 +13,8 @@ pub mod memory_pool;
 pub mod process;
 pub mod ipc;
 pub mod utils;
+pub mod vfs;
+pub mod memfs;
 
 use memory_pool::MemoryPool;
 use process::ProcessManager;
