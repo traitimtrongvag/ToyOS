@@ -137,9 +137,18 @@ void terminal_writestring(const char* data) {
 extern void rust_memory_init(void);
 extern uint32_t rust_allocate_page(void);
 extern void rust_print_stats(void);
-
 extern void cpp_driver_init(void);
 extern void cpp_driver_test(void);
+extern void gdt_install(void);
+extern void idt_install(void);
+extern void irq_install(void);
+extern void timer_install(void);
+extern void keyboard_init(void);
+extern void heap_init(void);
+extern void task_init(void);
+extern void shell_init(void);
+extern void cursor_enable(uint8_t, uint8_t);
+extern void cursor_set_position(uint8_t, uint8_t);
 
 void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_initialize();
@@ -149,28 +158,44 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_writestring("==================================\n\n");
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
-    terminal_writestring("[C] Kernel initialized\n");
+    terminal_writestring("[INIT] Setting up GDT...\n");
+    gdt_install();
+    terminal_writestring("[INIT] Setting up IDT...\n");
+    idt_install();
+    terminal_writestring("[INIT] Setting up IRQ handlers...\n");
+    irq_install();
+    terminal_writestring("[INIT] Starting timer...\n");
+    timer_install();
+    terminal_writestring("[INIT] Initializing keyboard...\n");
+    keyboard_init();
+    terminal_writestring("[INIT] Initializing heap allocator...\n");
+    heap_init();
+    terminal_writestring("[INIT] Initializing task manager...\n");
+    task_init();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK));
-    terminal_writestring("[Rust] Initializing memory manager...\n");
+    terminal_writestring("[RUST] Initializing memory manager...\n");
     rust_memory_init();
-    
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
-    terminal_writestring("[Rust] Allocating test page...\n");
+    terminal_writestring("[RUST] Allocating test page...\n");
     rust_allocate_page();
-    
-    terminal_writestring("[Rust] Memory statistics:\n");
+    terminal_writestring("[RUST] Memory statistics:\n");
     rust_print_stats();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_BLUE, VGA_COLOR_BLACK));
     terminal_writestring("\n[C++] Initializing driver subsystem...\n");
     cpp_driver_init();
-    
     terminal_writestring("[C++] Running driver test...\n");
     cpp_driver_test();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
-    terminal_writestring("\n");
-    terminal_writestring("System ready. All components loaded successfully.\n");
+    terminal_writestring("\nSystem ready. All components loaded successfully.\n");
     terminal_writestring("Languages: Assembly -> C -> Rust -> C++\n");
+    
+    cursor_enable(0, 15);
+    cursor_set_position(0, terminal_row);
+    shell_init();
+    
+    __asm__ volatile("sti");
+    for (;;) __asm__ volatile("hlt");
 }
