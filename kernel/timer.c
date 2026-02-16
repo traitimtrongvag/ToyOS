@@ -2,9 +2,15 @@
 #include "port.h"
 
 static uint32_t tick_count = 0;
+uint32_t timer_ticks = 0;
+
+void timer_handler(void) {
+    tick_count++;
+    timer_ticks = tick_count;
+}
 
 void timer_callback(void) {
-    tick_count++;
+    timer_handler();
 }
 
 static void timer_set_phase(uint32_t frequency) {
@@ -32,3 +38,8 @@ void timer_wait(uint32_t ticks) {
         __asm__ volatile("hlt");
     }
 }
+
+void timer_install(void) {
+    timer_init(100);
+}
+
