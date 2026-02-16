@@ -40,3 +40,8 @@ void gdt_init(void) {
     
     gdt_flush((uint32_t)&gdtp);
 }
+
+void gdt_install(void) {
+    gdt_init();
+}
+
