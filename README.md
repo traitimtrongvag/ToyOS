@@ -4,9 +4,17 @@
 
 A minimal operating system kernel demonstrating multi-language systems programming.
 
-## About
+## Features
 
-ToyOS is an educational OS kernel that combines Assembly, C, Rust, and C++ to illustrate fundamental operating system concepts. The project emphasizes understanding low-level programming, cross-language FFI, and bare-metal development.
+- Multi-language integration: Assembly, C, Rust, and C++
+- Protected mode with GDT and IDT
+- Interrupt handling: Full ISR and IRQ support with PIC remapping
+- Memory management: Rust page allocator, kernel heap, virtual memory
+- Device drivers: Keyboard, timer, VGA terminal, serial port
+- Interactive shell: CLI with built-in commands
+- Task management: Basic multitasking with context switching
+- Power management: ACPI shutdown and reboot
+- VGA cursor control
 
 ## Architecture
 
