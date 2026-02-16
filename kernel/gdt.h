@@ -16,5 +16,6 @@
 #define GDT_GRANULARITY_32BIT 0x0F
 
 void gdt_init(void);
+void gdt_install(void);
 
 #endif
