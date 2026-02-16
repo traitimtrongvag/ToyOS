@@ -64,7 +64,10 @@ void keyboard_handler(void) {
     if (is_release) return;
 
     char c = resolve_char(key);
-    if (c != 0) terminal_putchar(c);
+    if (c != 0) {
+        extern void shell_handle_input(char);
+        shell_handle_input(c);
+    }
 }
 
 void keyboard_init(void) {
