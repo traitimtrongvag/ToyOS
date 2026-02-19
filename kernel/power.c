@@ -5,7 +5,7 @@
 #define QEMU_SHUTDOWN_PORT 0x604
 
 void acpi_power_off(void) {
-    outb(QEMU_SHUTDOWN_PORT, ACPI_POWER_OFF);
+    outw(QEMU_SHUTDOWN_PORT, ACPI_POWER_OFF);
     for (;;) __asm__ volatile("hlt");
 }
 
