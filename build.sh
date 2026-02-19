@@ -43,7 +43,7 @@ echo "[4/4] Compiling C++ driver..."
 CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-exceptions -fno-rtti -Wall -O2"
 g++ $CXXFLAGS -c driver/driver.cpp    -o build/driver.o
 g++ $CXXFLAGS -c driver/logger.cpp    -o build/logger.o
-gcc $CFLAGS   -c driver/keyboard.c    -o build/keyboard.o
+gcc $CFLAGS   -c driver/keyboard.c  -I kernel/ -o build/keyboard.o
 
 echo "Linking..."
 GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
