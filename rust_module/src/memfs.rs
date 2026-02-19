@@ -1,3 +1,4 @@
+#![allow(static_mut_refs)]
 use crate::vfs::{
     FileMetadata, FilePermissions, FileType, VfsDirectory, VfsError, VfsNode, VfsResult,
     MAX_FILENAME,
