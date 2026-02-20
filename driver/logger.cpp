@@ -4,7 +4,7 @@ extern "C" {
     void terminal_setcolor(unsigned char color);
 }
 
-inline void* operator new(unsigned long, void* p) { return p; }
+inline void* operator new(unsigned int, void* p) { return p; }
 
 enum LogLevel {
     LOG_INFO = 0,
