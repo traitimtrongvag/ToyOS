@@ -14,3 +14,5 @@ paging_enable:
     
     pop ebp
     ret
+
+section .note.GNU-stack noalloc noexec nowrite progbits
