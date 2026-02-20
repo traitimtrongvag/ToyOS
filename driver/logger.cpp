@@ -4,6 +4,8 @@ extern "C" {
     void terminal_setcolor(unsigned char color);
 }
 
+inline void* operator new(unsigned long, void* p) { return p; }
+
 enum LogLevel {
     LOG_INFO = 0,
     LOG_WARNING = 1,
@@ -85,10 +87,11 @@ public:
     }
 };
 
+static char logger_buf[sizeof(Logger)];
 static Logger* system_logger = nullptr;
 
 extern "C" void cpp_logger_init() {
-    system_logger = new Logger("System");
+    system_logger = new (logger_buf) Logger("System");
 }
 
 extern "C" void cpp_log_info(const char* msg) {
