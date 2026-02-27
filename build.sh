@@ -18,6 +18,7 @@ nasm -f elf32 kernel/idt_load.asm -o build/idt_load.o
 nasm -f elf32 kernel/interrupt.asm -o build/interrupt.o
 nasm -f elf32 kernel/asm_utils.asm -o build/asm_utils.o
 nasm -f elf32 kernel/paging_asm.asm -o build/paging_asm.o
+nasm -f elf32 kernel/syscall.asm    -o build/syscall_asm.o
 
 CFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -O2"
 
@@ -38,25 +39,30 @@ gcc $CFLAGS -c kernel/task.c          -o build/task.o
 gcc $CFLAGS -c kernel/heap.c          -o build/heap.o
 gcc $CFLAGS -c kernel/power.c         -o build/power.o
 gcc $CFLAGS -c kernel/cursor.c        -o build/cursor.o
+gcc $CFLAGS -c kernel/syscall.c       -o build/syscall.o
+gcc $CFLAGS -c kernel/vfs_test.c      -o build/vfs_test.o
+gcc $CFLAGS -c kernel/syscall_test.c  -o build/syscall_test.o
 
 echo "[4/4] Compiling C++ driver..."
 CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-exceptions -fno-rtti -Wall -O2"
 g++ $CXXFLAGS -c driver/driver.cpp    -o build/driver.o
 g++ $CXXFLAGS -c driver/logger.cpp    -o build/logger.o
 gcc $CFLAGS   -c driver/keyboard.c  -I kernel/ -o build/keyboard.o
+gcc $CFLAGS   -c driver/rtc.c       -I kernel/ -o build/rtc.o
 
 echo "Linking..."
 GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
 
 OBJS="build/boot.o \
     build/gdt_flush.o build/idt_load.o build/interrupt.o \
-    build/asm_utils.o build/paging_asm.o \
+    build/asm_utils.o build/paging_asm.o build/syscall_asm.o \
     build/kernel.o build/memory_funcs.o build/string.o \
     build/gdt.o build/idt.o build/pic.o build/timer.o \
     build/serial.o build/paging.o build/interrupt_handlers.o \
     build/irq.o build/shell.o build/task.o build/heap.o \
     build/power.o build/cursor.o \
-    build/driver.o build/logger.o build/keyboard.o"
+    build/syscall.o build/vfs_test.o build/syscall_test.o \
+    build/driver.o build/logger.o build/keyboard.o build/rtc.o"
 
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
     ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \

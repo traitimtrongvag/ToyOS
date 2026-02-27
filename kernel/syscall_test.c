@@ -1,8 +1,10 @@
 #include "syscall_wrapper.h"
 #include "terminal.h"
 
+void itoa_simple(int32_t val, char* buf);
+
 void syscall_test(void) {
-    terminal_writestring("\n=== System Call Interface Test ===\n");
+    terminal_writestring("\nSystem Call Interface Test\n--------------------------\n");
 
     terminal_writestring("\n[TEST 1] getpid() syscall\n");
     int32_t pid = getpid();
@@ -58,7 +60,5 @@ void syscall_test(void) {
     terminal_writestring(inv_buf);
     terminal_writestring("\n");
 
-    terminal_writestring("\n=== All syscall tests completed ===\n");
+    terminal_writestring("\nAll syscall tests completed.\n");
 }
-
-void itoa_simple(int32_t val, char* buf);

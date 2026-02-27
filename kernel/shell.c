@@ -26,14 +26,17 @@ static void clear_screen_cmd(void) {
 
 static void help_cmd(void) {
     terminal_writestring("Available commands:\n");
-    terminal_writestring("  help     - Show this message\n");
-    terminal_writestring("  clear    - Clear screen\n");
-    terminal_writestring("  version  - Show OS version\n");
-    terminal_writestring("  meminfo  - Display memory stats\n");
-    terminal_writestring("  time     - Show system uptime\n");
-    terminal_writestring("  echo     - Echo arguments\n");
-    terminal_writestring("  shutdown - Power off\n");
-    terminal_writestring("  reboot   - Restart system\n");
+    terminal_writestring("  help         - Show this message\n");
+    terminal_writestring("  clear        - Clear screen\n");
+    terminal_writestring("  version      - Show OS version\n");
+    terminal_writestring("  meminfo      - Display memory stats\n");
+    terminal_writestring("  time         - Show system uptime\n");
+    terminal_writestring("  rtc          - Read hardware RTC clock\n");
+    terminal_writestring("  vfs          - Run VFS demo (create/write/read)\n");
+    terminal_writestring("  syscall-test - Run syscall interface tests\n");
+    terminal_writestring("  echo         - Echo arguments\n");
+    terminal_writestring("  shutdown     - Power off\n");
+    terminal_writestring("  reboot       - Restart system\n");
 }
 
 static void version_cmd(void) {
@@ -67,6 +70,63 @@ static void time_cmd(void) {
     terminal_writestring("\n");
 }
 
+static void print_two_digits(uint8_t val) {
+    char buf[3];
+    buf[0] = '0' + val / 10;
+    buf[1] = '0' + val % 10;
+    buf[2] = '\0';
+    terminal_writestring(buf);
+}
+
+static void print_year(uint16_t year) {
+    char buf[5];
+    buf[0] = '0' + year / 1000;
+    buf[1] = '0' + (year % 1000) / 100;
+    buf[2] = '0' + (year % 100) / 10;
+    buf[3] = '0' + year % 10;
+    buf[4] = '\0';
+    terminal_writestring(buf);
+}
+
+static void rtc_cmd(void) {
+    typedef struct {
+        uint8_t second;
+        uint8_t minute;
+        uint8_t hour;
+        uint8_t day;
+        uint8_t month;
+        uint16_t year;
+    } rtc_time_t;
+
+    extern void rtc_read(rtc_time_t* time);
+    rtc_time_t t;
+    rtc_read(&t);
+
+    terminal_writestring("RTC: ");
+    print_year(t.year);
+    terminal_putchar('-');
+    print_two_digits(t.month);
+    terminal_putchar('-');
+    print_two_digits(t.day);
+    terminal_putchar(' ');
+    print_two_digits(t.hour);
+    terminal_putchar(':');
+    print_two_digits(t.minute);
+    terminal_putchar(':');
+    print_two_digits(t.second);
+    terminal_putchar('\n');
+}
+
+static void vfs_cmd(void) {
+    extern void vfs_demo(void);
+    vfs_demo();
+}
+
+static void syscall_test_cmd(void) {
+    extern void syscall_test(void);
+    syscall_test();
+}
+
 static void echo_cmd(const char* args) {
     if (*args == '\0') {
         terminal_writestring("\n");
@@ -88,7 +148,7 @@ static void parse_and_execute(void) {
         args++;
         while (*args == ' ') args++;
     }
-    
+
     if (strcmp(cmd, "help") == 0) {
         help_cmd();
     } else if (strcmp(cmd, "clear") == 0) {
@@ -100,6 +160,12 @@ static void parse_and_execute(void) {
         meminfo_cmd();
     } else if (strcmp(cmd, "time") == 0) {
         time_cmd();
+    } else if (strcmp(cmd, "rtc") == 0) {
+        rtc_cmd();
+    } else if (strcmp(cmd, "vfs") == 0) {
+        vfs_cmd();
+    } else if (strcmp(cmd, "syscall-test") == 0) {
+        syscall_test_cmd();
     } else if (strcmp(cmd, "echo") == 0) {
         echo_cmd(args);
     } else if (strcmp(cmd, "shutdown") == 0) {
