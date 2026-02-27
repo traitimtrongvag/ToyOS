@@ -44,6 +44,7 @@ CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-excep
 g++ $CXXFLAGS -c driver/driver.cpp    -o build/driver.o
 g++ $CXXFLAGS -c driver/logger.cpp    -o build/logger.o
 gcc $CFLAGS   -c driver/keyboard.c  -I kernel/ -o build/keyboard.o
+gcc $CFLAGS   -c driver/rtc.c       -I kernel/ -o build/rtc.o
 
 echo "Linking..."
 GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
@@ -56,7 +57,7 @@ OBJS="build/boot.o \
     build/serial.o build/paging.o build/interrupt_handlers.o \
     build/irq.o build/shell.o build/task.o build/heap.o \
     build/power.o build/cursor.o \
-    build/driver.o build/logger.o build/keyboard.o"
+    build/driver.o build/logger.o build/keyboard.o build/rtc.o"
 
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
     ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
