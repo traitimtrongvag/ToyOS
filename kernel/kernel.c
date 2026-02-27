@@ -147,6 +147,8 @@ extern void keyboard_init(void);
 extern void heap_init(void);
 extern void task_init(void);
 extern void shell_init(void);
+extern void serial_init(void);
+extern void syscall_init(void);
 extern void cursor_enable(uint8_t, uint8_t);
 extern void cursor_set_position(uint8_t, uint8_t);
 
@@ -155,7 +157,7 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
     terminal_writestring("ToyOS v0.1 - Multi-Language Kernel\n");
-    terminal_writestring("==================================\n\n");
+    terminal_writestring("----------------------------------\n\n");
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     terminal_writestring("[INIT] Setting up GDT...\n");
@@ -168,10 +170,14 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     timer_install();
     terminal_writestring("[INIT] Initializing keyboard...\n");
     keyboard_init();
+    terminal_writestring("[INIT] Initializing serial port...\n");
+    serial_init();
     terminal_writestring("[INIT] Initializing heap allocator...\n");
     heap_init();
     terminal_writestring("[INIT] Initializing task manager...\n");
     task_init();
+    terminal_writestring("[INIT] Initializing syscall interface...\n");
+    syscall_init();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK));
     terminal_writestring("[RUST] Initializing memory manager...\n");
