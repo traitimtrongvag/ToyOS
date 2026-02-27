@@ -2,6 +2,7 @@ extern "C" {
     void terminal_writestring(const char* s);
     void terminal_putchar(char c);
     void terminal_setcolor(unsigned char color);
+    void rtc_init(void);
 }
 
 static inline void outb_vga(unsigned short port, unsigned char val) {
@@ -129,6 +130,8 @@ static VgaDriver global_vga_driver;
 
 extern "C" void cpp_driver_init() {
     global_vga_driver.init();
+    rtc_init();
+    terminal_writestring("  RTC driver initialized\n");
 }
 
 extern "C" void cpp_driver_test() {
