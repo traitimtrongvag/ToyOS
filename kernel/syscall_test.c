@@ -1,6 +1,8 @@
 #include "syscall_wrapper.h"
 #include "terminal.h"
 
+void itoa_simple(int32_t val, char* buf);
+
 void syscall_test(void) {
     terminal_writestring("\nSystem Call Interface Test\n--------------------------\n");
 
@@ -60,5 +62,3 @@ void syscall_test(void) {
 
     terminal_writestring("\nAll syscall tests completed.\n");
 }
-
-void itoa_simple(int32_t val, char* buf);
