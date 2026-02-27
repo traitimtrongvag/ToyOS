@@ -18,6 +18,7 @@ nasm -f elf32 kernel/idt_load.asm -o build/idt_load.o
 nasm -f elf32 kernel/interrupt.asm -o build/interrupt.o
 nasm -f elf32 kernel/asm_utils.asm -o build/asm_utils.o
 nasm -f elf32 kernel/paging_asm.asm -o build/paging_asm.o
+nasm -f elf32 kernel/syscall.asm    -o build/syscall_asm.o
 
 CFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -O2"
 
@@ -54,7 +55,7 @@ GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "
 
 OBJS="build/boot.o \
     build/gdt_flush.o build/idt_load.o build/interrupt.o \
-    build/asm_utils.o build/paging_asm.o \
+    build/asm_utils.o build/paging_asm.o build/syscall_asm.o \
     build/kernel.o build/memory_funcs.o build/string.o \
     build/gdt.o build/idt.o build/pic.o build/timer.o \
     build/serial.o build/paging.o build/interrupt_handlers.o \
