@@ -26,7 +26,7 @@ endif
 # Source and object files
 BOOT_SRC = boot/boot.asm
 KERNEL_SRC = kernel/kernel.c kernel/string.c kernel/gdt.c kernel/pic.c kernel/serial.c kernel/timer.c kernel/idt.c kernel/paging.c kernel/interrupt_handlers.c kernel/irq.c kernel/shell.c kernel/task.c kernel/heap.c kernel/power.c kernel/cursor.c kernel/memory_funcs.c
-DRIVER_SRC = driver/driver.cpp driver/keyboard.c driver/logger.cpp
+DRIVER_SRC = driver/driver.cpp driver/keyboard.c driver/logger.cpp driver/rtc.c
 ASM_SRC = kernel/asm_utils.asm kernel/gdt_flush.asm kernel/interrupt.asm kernel/idt_load.asm kernel/paging_asm.asm
 
 BOOT_OBJ = build/boot.o
@@ -82,7 +82,7 @@ build/driver_%.o: driver/%.cpp $(DRIVER_HEADERS)
 build/driver_%.o: driver/%.c $(DRIVER_HEADERS)
 	@mkdir -p build
 	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I kernel/ -c $< -o $@
 
 # Rust library
 $(RUST_LIB): rust_module/src/*.rs rust_module/Cargo.toml
