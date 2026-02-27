@@ -2,6 +2,8 @@
 #include "terminal.h"
 #include "string.h"
 
+void itoa(int32_t value, char* str, int base);
+
 void vfs_demo(void) {
     terminal_writestring("\n[VFS] Initializing virtual file system...\n");
     rust_vfs_init();
