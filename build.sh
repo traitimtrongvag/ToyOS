@@ -38,6 +38,8 @@ gcc $CFLAGS -c kernel/task.c          -o build/task.o
 gcc $CFLAGS -c kernel/heap.c          -o build/heap.o
 gcc $CFLAGS -c kernel/power.c         -o build/power.o
 gcc $CFLAGS -c kernel/cursor.c        -o build/cursor.o
+gcc $CFLAGS -c kernel/vfs_test.c      -o build/vfs_test.o
+gcc $CFLAGS -c kernel/syscall_test.c  -o build/syscall_test.o
 
 echo "[4/4] Compiling C++ driver..."
 CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-exceptions -fno-rtti -Wall -O2"
@@ -57,6 +59,7 @@ OBJS="build/boot.o \
     build/serial.o build/paging.o build/interrupt_handlers.o \
     build/irq.o build/shell.o build/task.o build/heap.o \
     build/power.o build/cursor.o \
+    build/vfs_test.o build/syscall_test.o \
     build/driver.o build/logger.o build/keyboard.o build/rtc.o"
 
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
