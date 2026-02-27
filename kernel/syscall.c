@@ -8,6 +8,8 @@ extern void syscall_handler(void);
 static syscall_handler_t syscall_table[MAX_SYSCALLS];
 static uint32_t next_pid = 1;
 
+void itoa_simple(int32_t val, char* buf);
+
 static int32_t sys_exit(uint32_t code) {
     terminal_writestring("[SYSCALL] Process exit with code: ");
     char buf[16];
