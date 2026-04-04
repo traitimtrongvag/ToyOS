@@ -82,7 +82,11 @@ void* krealloc(void* ptr, size_t size) {
     if (!new_ptr) return NULL;
     uint8_t* src = (uint8_t*)ptr;
     uint8_t* dst = (uint8_t*)new_ptr;
-    for (size_t i = 0; i < block->size; i++) dst[i] = src[i];
+    /* Copy only as many bytes as the old block held, capped at the new size.
+     * block->size is aligned-up, so without this clamp we would read past
+     * the caller's meaningful data when shrinking. */
+    size_t copy_size = block->size < size ? block->size : size;
+    for (size_t i = 0; i < copy_size; i++) dst[i] = src[i];
     kfree(ptr);
     return new_ptr;
 }
