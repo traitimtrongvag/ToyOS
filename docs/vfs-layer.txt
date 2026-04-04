@@ -57,7 +57,9 @@ VfsDirectory trait:
   lookup()      Find file by name
   create()      Create new file
   remove()      Delete file
-  list()        List directory contents
+  list(f)       Iterate directory entries via callback f: FnMut(&str)
+                Signature changed from &[&str] return to avoid lifetime
+                issues with internal [u8; MAX_FILENAME] storage.
 
 
 IN-MEMORY FILESYSTEM
@@ -94,6 +96,10 @@ rust_vfs_read(name, name_len, buf, buf_len)
   Read data from file
   Returns: bytes read, -1 error
 
+rust_vfs_list()
+  Print all filenames to the terminal, one per line.
+  Uses MemFs::list() with a terminal_writestring callback internally.
+
 
 ERROR HANDLING
 
@@ -106,6 +112,8 @@ VfsError types:
   InvalidPath       Path format error
   OutOfSpace        No space available
   IoError           Generic I/O error
+                    Note: previously returned by list() as a stub.
+                    list() now always returns Ok(()) after the fix.
 
 
 USAGE EXAMPLE
