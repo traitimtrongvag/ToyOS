@@ -154,8 +154,13 @@ impl VfsDirectory for MemFs {
         }
     }
 
-    fn list(&self) -> VfsResult<&[&str]> {
-        Err(VfsError::IoError)
+    fn list<F: FnMut(&str)>(&self, mut f: F) -> VfsResult<()> {
+        for slot in &self.files {
+            if let Some(file) = slot {
+                f(file.name_str());
+            }
+        }
+        Ok(())
     }
 }
 
@@ -261,5 +266,22 @@ pub extern "C" fn rust_vfs_read(
             },
             None => -1,
         }
+    }
+}
+
+extern "C" {
+    fn terminal_writestring(s: *const u8);
+    fn terminal_putchar(c: u8);
+}
+
+/// Print every filename in the filesystem, one per line, to the terminal.
+/// Called from the shell `ls` / `vfs ls` command.
+#[no_mangle]
+pub extern "C" fn rust_vfs_list() {
+    unsafe {
+        let _ = GLOBAL_MEMFS.list(|name| {
+            terminal_writestring(name.as_ptr());
+            terminal_putchar(b'\n');
+        });
     }
 }

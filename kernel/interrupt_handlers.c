@@ -12,6 +12,20 @@ typedef struct {
 extern void terminal_writestring(const char* str);
 extern void terminal_setcolor(uint8_t color);
 
+/* Print a 32-bit value as zero-padded hex (no stdlib available). */
+static void print_hex(uint32_t val) {
+    static const char digits[] = "0123456789ABCDEF";
+    char buf[8];
+    for (int i = 7; i >= 0; i--) {
+        buf[i] = digits[val & 0xF];
+        val >>= 4;
+    }
+    for (int i = 0; i < 8; i++) {
+        char tmp[2] = { buf[i], '\0' };
+        terminal_writestring(tmp);
+    }
+}
+
 static const char* exception_messages[] = {
     "Division By Zero",
     "Debug",
@@ -37,14 +51,28 @@ static const char* exception_messages[] = {
 void isr_handler(registers_t* regs) {
     if (regs->int_no < 32) {
         terminal_setcolor(0x4F);
-        terminal_writestring("\nException: ");
+        terminal_writestring("\n=== KERNEL PANIC ===\n");
+        terminal_writestring("Exception #");
+        /* Print int_no as decimal (0-31, always two digits max) */
+        char num[3] = { '0' + (char)(regs->int_no / 10),
+                        '0' + (char)(regs->int_no % 10), '\0' };
+        if (regs->int_no < 10) {
+            terminal_writestring(num + 1);
+        } else {
+            terminal_writestring(num);
+        }
+        terminal_writestring(" - ");
         if (regs->int_no < 19) {
             terminal_writestring(exception_messages[regs->int_no]);
         } else {
             terminal_writestring("Reserved");
         }
+        terminal_writestring("\nEIP: 0x"); print_hex(regs->eip);
+        terminal_writestring("  ERR: 0x"); print_hex(regs->err_code);
+        terminal_writestring("\nCS:  0x"); print_hex(regs->cs);
+        terminal_writestring("  EFLAGS: 0x"); print_hex(regs->eflags);
         terminal_writestring("\n");
-        for(;;);
+        for (;;);
     }
 }
 

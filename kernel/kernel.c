@@ -151,6 +151,7 @@ extern void serial_init(void);
 extern void syscall_init(void);
 extern void cursor_enable(uint8_t, uint8_t);
 extern void cursor_set_position(uint8_t, uint8_t);
+extern void paging_init(void);
 
 void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_initialize();
@@ -172,6 +173,8 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     keyboard_init();
     terminal_writestring("[INIT] Initializing serial port...\n");
     serial_init();
+    terminal_writestring("[INIT] Initializing paging...\n");
+    paging_init();
     terminal_writestring("[INIT] Initializing heap allocator...\n");
     heap_init();
     terminal_writestring("[INIT] Initializing task manager...\n");
