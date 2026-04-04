@@ -56,9 +56,42 @@ Functions in kernel/pic.c:
   irq_clear_mask()    Enable specific IRQ line
 
 
+EXCEPTION HANDLER
+
+isr_handler() in kernel/interrupt_handlers.c handles INT 0-31.
+
+On any exception it sets the terminal to red-on-white and prints:
+
+  - Exception number and name (from exception_messages[])
+  - EIP (faulting instruction address)
+  - Error code (pushed by CPU for faults that have one)
+  - CS and EFLAGS
+
+After printing, the kernel halts in an infinite loop. There is no recovery
+path; the output is meant to give the developer enough context to locate
+the fault without a debugger attached.
+
+print_hex() in interrupt_handlers.c renders a u32 as 8 uppercase hex digits
+using only terminal_writestring — no sprintf or libc dependency.
+
+
+IRQ DISPATCH AND EOI ORDERING
+
+irq_handler() in interrupt_handlers.c sends EOI to the PIC before calling
+subsystem handlers:
+
+  1. If IRQ came from PIC2 (int_no >= 40): send EOI to PIC2 (0xA0)
+  2. Always send EOI to PIC1 (0x20)
+  3. Call timer_handler() or keyboard_handler() as appropriate
+
+task_switch() must only be called after EOI has been sent. The current call
+chain (irq_handler -> timer_handler -> task_switch) satisfies this. Calling
+task_switch from a path where EOI is pending will cause a spurious IRQ storm
+when EFLAGS is restored by popf at the end of the context switch.
+
+
 LIMITATIONS
 
-- No interrupt handlers registered yet
-- No IRQ routing configured
-- ISRs not implemented
-- Exception handlers missing
+- No interrupt handlers registered dynamically at runtime
+- Page fault handler installed but no recovery (halts on first fault)
+- No SMP interrupt routing
