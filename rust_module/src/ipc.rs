@@ -74,27 +74,33 @@ impl MessageQueue {
     pub fn receive_message(&mut self, receiver_pid: u32) -> Option<Message> {
         for i in 0..self.count {
             let idx = (self.head + i) % MAX_MESSAGES;
-            
+
             if self.messages[idx].receiver_pid == receiver_pid {
                 let msg = self.messages[idx];
-                
-                for j in i..self.count - 1 {
-                    let curr_idx = (self.head + j) % MAX_MESSAGES;
-                    let next_idx = (self.head + j + 1) % MAX_MESSAGES;
-                    self.messages[curr_idx] = self.messages[next_idx];
-                }
-                
-                self.count -= 1;
-                self.tail = if self.tail == 0 {
-                    MAX_MESSAGES - 1
+
+                if i == 0 {
+                    // Front of queue: just advance head, no data movement needed.
+                    self.head = (self.head + 1) % MAX_MESSAGES;
                 } else {
-                    self.tail - 1
-                };
-                
+                    // Mid-queue removal: shift remaining entries one slot toward head,
+                    // then pull tail back. head stays where it is.
+                    for j in i..self.count - 1 {
+                        let curr_idx = (self.head + j) % MAX_MESSAGES;
+                        let next_idx = (self.head + j + 1) % MAX_MESSAGES;
+                        self.messages[curr_idx] = self.messages[next_idx];
+                    }
+                    self.tail = if self.tail == 0 {
+                        MAX_MESSAGES - 1
+                    } else {
+                        self.tail - 1
+                    };
+                }
+
+                self.count -= 1;
                 return Some(msg);
             }
         }
-        
+
         None
     }
     
