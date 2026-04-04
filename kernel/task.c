@@ -21,7 +21,9 @@ typedef struct {
 
 static task_t tasks[MAX_TASKS];
 static uint32_t current_task = 0;
-static uint32_t task_count = 0;
+/* volatile: read in task_switch (timer ISR context), written in task_create.
+ * Safe on uniprocessor; would need cli/sti protection for SMP. */
+static volatile uint32_t task_count = 0;
 static uint32_t task_stacks[MAX_TASKS][1024] __attribute__((aligned(16)));
 
 uint32_t task_create(void (*entry)(void)) {
@@ -41,16 +43,24 @@ uint32_t task_create(void (*entry)(void)) {
     return tid;
 }
 
+/* task_switch must only be called after the PIC EOI has been sent.
+ * The timer ISR path (irq_handler -> timer_handler -> task_switch) already does
+ * this correctly. Calling task_switch before EOI would re-enable interrupts
+ * (via popf) while the PIC still holds the IRQ line asserted, causing a
+ * spurious interrupt storm. */
 void task_switch(void) {
     uint32_t old_task = current_task;
     do {
         current_task = (current_task + 1) % task_count;
     } while (tasks[current_task].state != TASK_READY && current_task != old_task);
     if (current_task == old_task) return;
+    /* pushf/popf save and restore the full EFLAGS including IF, so the
+     * interrupt enable state of the caller is preserved across the switch
+     * rather than being unconditionally turned on with sti. */
     __asm__ volatile(
-        "cli\n\t" "pusha\n\t" "pushf\n\t"
+        "pushf\n\t" "cli\n\t" "pusha\n\t"
         "mov %%esp, %0\n\t" "mov %1, %%esp\n\t"
-        "popf\n\t" "popa\n\t" "sti\n\t"
+        "popa\n\t" "popf\n\t"
         : "=m"(tasks[old_task].context.esp)
         : "m"(tasks[current_task].context.esp)
     );

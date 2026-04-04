@@ -1,8 +1,9 @@
 #include "timer.h"
 #include "port.h"
 
-static uint32_t tick_count = 0;
-uint32_t timer_ticks = 0;
+/* volatile: written by the timer ISR, read in timer_wait — must not be cached in a register */
+static volatile uint32_t tick_count = 0;
+volatile uint32_t timer_ticks = 0;
 
 void timer_handler(void) {
     tick_count++;
@@ -34,7 +35,10 @@ uint32_t timer_get_ticks(void) {
 
 void timer_wait(uint32_t ticks) {
     uint32_t target = tick_count + ticks;
-    while(tick_count < target) {
+    /* Interrupts must be enabled here — the timer IRQ increments tick_count.
+     * Callers must not invoke timer_wait from a disabled-interrupt context. */
+    __asm__ volatile("sti");
+    while (tick_count < target) {
         __asm__ volatile("hlt");
     }
 }
