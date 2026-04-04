@@ -83,7 +83,9 @@ Located in kernel/paging.c and kernel/paging.h:
 
 CURRENT STATE
 
-- Identity mapping not yet configured
-- No user space pages allocated
-- No demand paging implemented  
-- Page fault handler not installed
+paging_init() is called from kernel_main() before heap_init(). The heap
+region starting at 0x100000 is covered by the identity-mapped page tables
+set up in paging_init(), so kmalloc operates on mapped memory.
+
+User-space pages, demand paging, and a page fault handler are not yet
+implemented.
