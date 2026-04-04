@@ -104,7 +104,10 @@ pub trait VfsDirectory {
     fn lookup(&self, name: &str) -> VfsResult<&dyn VfsNode>;
     fn create(&mut self, name: &str, file_type: FileType) -> VfsResult<()>;
     fn remove(&mut self, name: &str) -> VfsResult<()>;
-    fn list(&self) -> VfsResult<&[&str]>;
+    /* Callback-based listing: avoids returning borrowed slices of internal
+     * byte arrays which cannot safely coerce to &str with the right lifetime.
+     * The closure receives each filename in turn; returning an error short-circuits. */
+    fn list<F: FnMut(&str)>(&self, f: F) -> VfsResult<()>;
 }
 
 pub struct VfsMount {
