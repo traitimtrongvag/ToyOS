@@ -33,6 +33,55 @@ const PAGE_SIZE: u32 = 4096;
 const MIN_PAGE_ADDR: u32 = 0x100000;
 const MAX_PAGE_ADDR: u32 = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE);
 
+// Free-list holds page addresses returned by rust_free_page so they can be
+// handed out again before bumping NEXT_PAGE further.
+const FREE_LIST_SIZE: usize = TOTAL_PAGES as usize;
+
+struct FreeList {
+    pages: UnsafeCell<[u32; FREE_LIST_SIZE]>,
+    top:   UnsafeCell<usize>,
+}
+
+unsafe impl Sync for FreeList {}
+
+impl FreeList {
+    const fn new() -> Self {
+        Self {
+            pages: UnsafeCell::new([0u32; FREE_LIST_SIZE]),
+            top:   UnsafeCell::new(0),
+        }
+    }
+
+    fn push(&self, page: u32) -> bool {
+        unsafe {
+            let top = self.top.get();
+            if *top >= FREE_LIST_SIZE {
+                return false;
+            }
+            (*self.pages.get())[*top] = page;
+            *top += 1;
+            true
+        }
+    }
+
+    fn pop(&self) -> Option<u32> {
+        unsafe {
+            let top = self.top.get();
+            if *top == 0 {
+                return None;
+            }
+            *top -= 1;
+            Some((*self.pages.get())[*top])
+        }
+    }
+
+    fn reset(&self) {
+        unsafe { *self.top.get() = 0; }
+    }
+}
+
+static FREE_LIST: FreeList = FreeList::new();
+
 static ALLOCATED_PAGES: AtomicU32 = AtomicU32::new(0);
 static NEXT_PAGE: AtomicU32 = AtomicU32::new(MIN_PAGE_ADDR);
 
@@ -88,6 +137,7 @@ pub extern "C" fn rust_memory_init() {
     MEMORY_MANAGER.reset();
     ALLOCATED_PAGES.store(0, Ordering::SeqCst);
     NEXT_PAGE.store(MIN_PAGE_ADDR, Ordering::SeqCst);
+    FREE_LIST.reset();
 }
 
 #[no_mangle]
@@ -96,16 +146,23 @@ pub extern "C" fn rust_allocate_page() -> u32 {
     if allocated >= TOTAL_PAGES {
         return 0;
     }
-    
+
+    // Reuse a previously freed page before consuming fresh address space.
+    if let Some(page) = FREE_LIST.pop() {
+        ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
+        MEMORY_MANAGER.decrement_free_pages();
+        return page;
+    }
+
     loop {
         let current_page = NEXT_PAGE.load(Ordering::SeqCst);
-        
+
         if current_page >= MAX_PAGE_ADDR {
             return 0;
         }
-        
+
         let next_page = current_page + PAGE_SIZE;
-        
+
         if NEXT_PAGE.compare_exchange(
             current_page,
             next_page,
@@ -124,16 +181,20 @@ pub extern "C" fn rust_free_page(page: u32) {
     if page < MIN_PAGE_ADDR || page >= MAX_PAGE_ADDR {
         return;
     }
-    
+
     if page % PAGE_SIZE != 0 {
         return;
     }
-    
+
     let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
     if allocated == 0 {
         return;
     }
-    
+
+    // Return the page to the free-list so rust_allocate_page can hand it out again.
+    // If the free-list is somehow full (should not happen given FREE_LIST_SIZE == TOTAL_PAGES),
+    // the page is lost — acceptable for this allocator's scope.
+    FREE_LIST.push(page);
     ALLOCATED_PAGES.fetch_sub(1, Ordering::SeqCst);
     MEMORY_MANAGER.increment_free_pages();
 }
