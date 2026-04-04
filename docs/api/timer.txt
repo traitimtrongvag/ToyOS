@@ -58,14 +58,22 @@ DELAY FUNCTIONS
 void timer_wait(uint32_t ticks)
 
   Busy-wait for specified number of ticks.
-  
-  Halts CPU until tick count increases by specified amount.
-  Relies on timer interrupts being enabled.
-  
+
+  Enables interrupts (sti) then halts the CPU in a loop until tick_count
+  reaches the target value. The timer IRQ increments tick_count on each
+  tick, which unblocks the loop.
+
+  Precondition: must not be called from within an ISR or any context where
+  interrupts cannot be safely re-enabled. Calling timer_wait before the
+  PIC and IDT are initialized will hang permanently.
+
+  tick_count is declared volatile to prevent the compiler from caching the
+  read in a register across iterations.
+
   Parameters:
     ticks   Number of ticks to wait
-  
+
   Returns: Nothing
-  
+
   Example:
     timer_wait(100);  // Wait 1 second at 100 Hz
