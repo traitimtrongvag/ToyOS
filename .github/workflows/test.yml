@@ -1,0 +1,194 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gcc-multilib cppcheck binutils make
+
+    - name: cppcheck kernel
+      run: |
+        cppcheck --error-exitcode=1 \
+          --std=c11 \
+          --platform=unix32 \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          -I kernel/ \
+          kernel/*.c
+
+    - name: cppcheck drivers
+      run: |
+        cppcheck --error-exitcode=1 \
+          --std=c11 \
+          --platform=unix32 \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          -I kernel/ -I driver/ \
+          driver/keyboard.c driver/rtc.c driver/speaker.c
+
+  smoke-test:
+    name: QEMU Smoke Test
+    runs-on: ubuntu-latest
+    needs: static-analysis
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          nasm gcc g++ gcc-multilib g++-multilib \
+          qemu-system-x86 binutils make \
+          expect
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target: i686-unknown-linux-gnu
+        override: true
+
+    - name: Build kernel
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: QEMU boot smoke test
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot \
+          -no-shutdown 2>&1 | tee /tmp/boot.log || true
+
+        echo "--- Boot log ---"
+        cat /tmp/boot.log
+
+        grep -q "ToyOS" /tmp/boot.log       || (echo "FAIL: banner missing"   && exit 1)
+        grep -q "\[INIT\]" /tmp/boot.log    || (echo "FAIL: init messages missing" && exit 1)
+        grep -q "\[RUST\]" /tmp/boot.log    || (echo "FAIL: rust init missing" && exit 1)
+        grep -q "System ready" /tmp/boot.log || (echo "FAIL: system ready missing" && exit 1)
+        echo "Smoke test passed."
+
+    - name: Upload boot log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: boot-log
+        path: /tmp/boot.log
+        retention-days: 7
+
+  kernel-unit-tests:
+    name: Kernel Unit Tests (QEMU)
+    runs-on: ubuntu-latest
+    needs: static-analysis
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          nasm gcc g++ gcc-multilib g++-multilib \
+          qemu-system-x86 binutils make
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target: i686-unknown-linux-gnu
+        override: true
+
+    - name: Build kernel with all tests
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Run heap tests in QEMU
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot 2>&1 | tee /tmp/test_heap.log || true
+        grep -q "Heap Allocator Test" /tmp/test_heap.log || (echo "FAIL: heap test output missing" && exit 1)
+        grep -qv "\[FAIL\]" /tmp/test_heap.log || (echo "FAIL: heap test has failures" && exit 1)
+        echo "Heap tests OK."
+
+    - name: Run paging tests in QEMU
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot 2>&1 | tee /tmp/test_paging.log || true
+        grep -q "Paging Test" /tmp/test_paging.log || (echo "FAIL: paging test output missing" && exit 1)
+        grep -qv "\[FAIL\]" /tmp/test_paging.log || (echo "FAIL: paging test has failures" && exit 1)
+        echo "Paging tests OK."
+
+    - name: Run task tests in QEMU
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot 2>&1 | tee /tmp/test_task.log || true
+        grep -q "Task Manager Test" /tmp/test_task.log || (echo "FAIL: task test output missing" && exit 1)
+        grep -qv "\[FAIL\]" /tmp/test_task.log || (echo "FAIL: task test has failures" && exit 1)
+        echo "Task tests OK."
+
+    - name: Run syscall tests in QEMU
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot 2>&1 | tee /tmp/test_syscall.log || true
+        grep -q "System Call Interface Test" /tmp/test_syscall.log || (echo "FAIL: syscall test output missing" && exit 1)
+        grep -qv "\[FAIL\]" /tmp/test_syscall.log || (echo "FAIL: syscall test has failures" && exit 1)
+        echo "Syscall tests OK."
+
+    - name: Run VFS tests in QEMU
+      timeout-minutes: 2
+      run: |
+        timeout 30s qemu-system-i386 \
+          -kernel build/toyos.elf \
+          -nographic \
+          -serial mon:stdio \
+          -no-reboot 2>&1 | tee /tmp/test_vfs.log || true
+        grep -q "\[VFS\]" /tmp/test_vfs.log || (echo "FAIL: vfs test output missing" && exit 1)
+        grep -q "Test passed" /tmp/test_vfs.log || (echo "FAIL: vfs test did not pass" && exit 1)
+        echo "VFS tests OK."
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs
+        path: /tmp/test_*.log
+        retention-days: 7
