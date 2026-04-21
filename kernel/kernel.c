@@ -149,6 +149,9 @@ extern void task_init(void);
 extern void shell_init(void);
 extern void serial_init(void);
 extern void syscall_init(void);
+extern void heap_test(void);
+extern void paging_test(void);
+extern void task_test(void);
 extern void cursor_enable(uint8_t, uint8_t);
 extern void cursor_set_position(uint8_t, uint8_t);
 extern void paging_init(void);
@@ -182,6 +185,12 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_writestring("[INIT] Initializing syscall interface...\n");
     syscall_init();
     
+    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_BROWN, VGA_COLOR_BLACK));
+    terminal_writestring("\n[TEST] Running kernel unit tests...\n");
+    heap_test();
+    paging_test();
+    task_test();
+
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK));
     terminal_writestring("[RUST] Initializing memory manager...\n");
     rust_memory_init();
