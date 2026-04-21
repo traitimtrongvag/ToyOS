@@ -40,6 +40,9 @@ gcc $CFLAGS -c kernel/heap.c          -o build/heap.o
 gcc $CFLAGS -c kernel/power.c         -o build/power.o
 gcc $CFLAGS -c kernel/cursor.c        -o build/cursor.o
 gcc $CFLAGS -c kernel/syscall.c       -o build/syscall.o
+gcc $CFLAGS -c kernel/heap_test.c     -o build/heap_test.o
+gcc $CFLAGS -c kernel/paging_test.c   -o build/paging_test.o
+gcc $CFLAGS -c kernel/task_test.c     -o build/task_test.o
 gcc $CFLAGS -c kernel/vfs_test.c      -o build/vfs_test.o
 gcc $CFLAGS -c kernel/syscall_test.c  -o build/syscall_test.o
 
@@ -61,7 +64,8 @@ OBJS="build/boot.o \
     build/serial.o build/paging.o build/interrupt_handlers.o \
     build/irq.o build/shell.o build/task.o build/heap.o \
     build/power.o build/cursor.o \
-    build/syscall.o build/vfs_test.o build/syscall_test.o \
+    build/syscall.o build/heap_test.o build/paging_test.o build/task_test.o \
+    build/vfs_test.o build/syscall_test.o \
     build/driver.o build/logger.o build/keyboard.o build/rtc.o"
 
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
