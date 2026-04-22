@@ -30,7 +30,7 @@ extern "C" fn eh_personality() {}
 
 const TOTAL_PAGES: u32 = 1024;
 const PAGE_SIZE: u32 = 4096;
-const MIN_PAGE_ADDR: u32 = 0x100000;
+const MIN_PAGE_ADDR: u32 = 0x800000;
 const MAX_PAGE_ADDR: u32 = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE);
 
 // Free-list holds page addresses returned by rust_free_page so they can be
