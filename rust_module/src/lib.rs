@@ -205,8 +205,8 @@ extern "C" {
 }
 
 fn print_str(s: &str) {
-    unsafe {
-        terminal_writestring(s.as_ptr());
+    for b in s.bytes() {
+        unsafe { terminal_putchar(b); }
     }
 }
 
