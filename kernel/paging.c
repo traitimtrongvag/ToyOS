@@ -31,7 +31,15 @@ void paging_init(void) {
         kernel_directory.tables[i] = &kernel_tables[i];
         kernel_directory.tables_physical[i] = ((uint32_t)&kernel_tables[i]) | PAGE_PRESENT | PAGE_WRITE;
     }
-    
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 1024; j++) {
+            kernel_tables[i].pages[j].present = 1;
+            kernel_tables[i].pages[j].rw = 1;
+            kernel_tables[i].pages[j].frame = i * 1024 + j;
+        }
+    }
+
     current_directory = &kernel_directory;
     paging_enable((uint32_t)kernel_directory.tables_physical);
 }
