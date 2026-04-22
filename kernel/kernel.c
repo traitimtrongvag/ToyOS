@@ -90,6 +90,8 @@ static void terminal_newline(void) {
 }
 
 void terminal_putchar(char c) {
+    serial_putchar(c);
+
     /* Handle special characters */
     switch (c) {
         case '\n':
@@ -148,6 +150,7 @@ extern void heap_init(void);
 extern void task_init(void);
 extern void shell_init(void);
 extern void serial_init(void);
+extern void serial_putchar(char c);
 extern void syscall_init(void);
 extern void heap_test(void);
 extern void paging_test(void);
@@ -158,6 +161,7 @@ extern void paging_init(void);
 
 void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_initialize();
+    serial_init();
     
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
     terminal_writestring("ToyOS v0.1 - Multi-Language Kernel\n");
@@ -175,7 +179,6 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_writestring("[INIT] Initializing keyboard...\n");
     keyboard_init();
     terminal_writestring("[INIT] Initializing serial port...\n");
-    serial_init();
     terminal_writestring("[INIT] Initializing paging...\n");
     paging_init();
     terminal_writestring("[INIT] Initializing heap allocator...\n");
