@@ -211,24 +211,25 @@ fn print_str(s: &str) {
 }
 
 fn print_u32(num: u32) {
-    let mut buffer = [0u8; 10];
-    let mut n = num;
-    let mut i = 0;
-    
-    if n == 0 {
+    if num == 0 {
         unsafe { terminal_putchar(b'0'); }
         return;
     }
-    
-    while n > 0 && i < buffer.len() {
-        buffer[i] = (n % 10) as u8 + b'0';
-        n /= 10;
-        i += 1;
-    }
-    
-    while i > 0 {
-        i -= 1;
-        unsafe { terminal_putchar(buffer[i]); }
+    let powers: [u32; 10] = [
+        1_000_000_000, 100_000_000, 10_000_000, 1_000_000,
+        100_000, 10_000, 1_000, 100, 10, 1,
+    ];
+    let mut started = false;
+    let mut n = num;
+    for &p in powers.iter() {
+        if n >= p {
+            let mut d = 0u8;
+            while n >= p { n -= p; d += 1; }
+            unsafe { terminal_putchar(b'0' + d); }
+            started = true;
+        } else if started {
+            unsafe { terminal_putchar(b'0'); }
+        }
     }
 }
 
