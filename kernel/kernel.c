@@ -155,6 +155,8 @@ extern void syscall_init(void);
 extern void heap_test(void);
 extern void paging_test(void);
 extern void task_test(void);
+extern void syscall_test(void);
+extern void vfs_demo(void);
 extern void cursor_enable(uint8_t, uint8_t);
 extern void cursor_set_position(uint8_t, uint8_t);
 extern void paging_init(void);
@@ -193,6 +195,8 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     heap_test();
     paging_test();
     task_test();
+    syscall_test();
+    vfs_demo();
 
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK));
     terminal_writestring("[RUST] Initializing memory manager...\n");
