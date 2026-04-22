@@ -135,27 +135,27 @@ static mut GLOBAL_MESSAGE_QUEUE: MessageQueue = MessageQueue::new();
 #[no_mangle]
 pub extern "C" fn rust_memory_init() {
     MEMORY_MANAGER.reset();
-    ALLOCATED_PAGES.store(0, Ordering::SeqCst);
-    NEXT_PAGE.store(MIN_PAGE_ADDR, Ordering::SeqCst);
+    ALLOCATED_PAGES.store(0, Ordering::Relaxed);
+    NEXT_PAGE.store(MIN_PAGE_ADDR, Ordering::Relaxed);
     FREE_LIST.reset();
 }
 
 #[no_mangle]
 pub extern "C" fn rust_allocate_page() -> u32 {
-    let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
+    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
     if allocated >= TOTAL_PAGES {
         return 0;
     }
 
     // Reuse a previously freed page before consuming fresh address space.
     if let Some(page) = FREE_LIST.pop() {
-        ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
+        ALLOCATED_PAGES.fetch_add(1, Ordering::Relaxed);
         MEMORY_MANAGER.decrement_free_pages();
         return page;
     }
 
     loop {
-        let current_page = NEXT_PAGE.load(Ordering::SeqCst);
+        let current_page = NEXT_PAGE.load(Ordering::Relaxed);
 
         if current_page >= MAX_PAGE_ADDR {
             return 0;
@@ -166,10 +166,10 @@ pub extern "C" fn rust_allocate_page() -> u32 {
         if NEXT_PAGE.compare_exchange(
             current_page,
             next_page,
-            Ordering::SeqCst,
-            Ordering::SeqCst
+            Ordering::Relaxed,
+            Ordering::Relaxed
         ).is_ok() {
-            ALLOCATED_PAGES.fetch_add(1, Ordering::SeqCst);
+            ALLOCATED_PAGES.fetch_add(1, Ordering::Relaxed);
             MEMORY_MANAGER.decrement_free_pages();
             return current_page;
         }
@@ -186,7 +186,7 @@ pub extern "C" fn rust_free_page(page: u32) {
         return;
     }
 
-    let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
+    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
     if allocated == 0 {
         return;
     }
@@ -195,7 +195,7 @@ pub extern "C" fn rust_free_page(page: u32) {
     // If the free-list is somehow full (should not happen given FREE_LIST_SIZE == TOTAL_PAGES),
     // the page is lost — acceptable for this allocator's scope.
     FREE_LIST.push(page);
-    ALLOCATED_PAGES.fetch_sub(1, Ordering::SeqCst);
+    ALLOCATED_PAGES.fetch_sub(1, Ordering::Relaxed);
     MEMORY_MANAGER.increment_free_pages();
 }
 
@@ -234,7 +234,7 @@ fn print_u32(num: u32) {
 
 #[no_mangle]
 pub extern "C" fn rust_print_stats() {
-    let allocated = ALLOCATED_PAGES.load(Ordering::SeqCst);
+    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
     let free = MEMORY_MANAGER.get_free_pages();
     
     print_str("  Total pages: ");
@@ -258,7 +258,7 @@ pub extern "C" fn rust_get_free_memory() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn rust_get_allocated_memory() -> u32 {
-    ALLOCATED_PAGES.load(Ordering::SeqCst) * PAGE_SIZE
+    ALLOCATED_PAGES.load(Ordering::Relaxed) * PAGE_SIZE
 }
 
 #[no_mangle]
