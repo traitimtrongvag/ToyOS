@@ -39,6 +39,30 @@ Each character cell:
     Bit 7: Blink
 
 
+KERNEL HEAP
+
+kmalloc pool managed by kernel/heap.c:
+  Start:  0xC00000 (12MB)
+  Size:   1MB
+  End:    0xCFFFFF
+
+Placed above the Rust page allocator range (0x800000 - 0xBFFFFF) so the
+two allocators never overlap. 12MB falls within the first 16MB that
+paging_init() identity-maps, so kmalloc works immediately after paging
+is enabled with no extra mapping step required.
+
+First-fit allocator with block coalescing on kfree. Minimum allocation
+granularity: 16 bytes (BLOCK_ALIGN).
+
+
+LIMITATIONS
+
+- Identity mapping by default
+- 4MB allocation limit
+- No memory protection without paging enabled
+- No fragmentation handling in allocator
+
+
 PAGE FRAME ALLOCATOR
 
 Rust memory manager controls:
@@ -57,9 +81,11 @@ panic when paging was enabled.
 Bump allocator with a fixed-size free-list for recycled pages.
 
 
-LIMITATIONS
+FULL ADDRESS MAP SUMMARY
 
-- Identity mapping by default
-- 4MB allocation limit
-- No memory protection without paging enabled
-- No fragmentation handling in allocator
+0x00000 - 0xFFFFF     Low memory (BIOS, VGA, bootloader)
+0x100000              Kernel load address
+0x100000 - 0x4FFFFF  Kernel image + static BSS + page tables (~5MB)
+0x800000 - 0xBFFFFF  Rust page frame allocator (4MB, 1024 x 4KB frames)
+0xC00000 - 0xCFFFFF  Kernel heap / kmalloc pool (1MB)
+0xD00000+             Available for future use
