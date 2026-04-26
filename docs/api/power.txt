@@ -1,0 +1,67 @@
+Power API
+
+
+CONSTANTS
+
+QEMU_SHUTDOWN_PORT   0x604   QEMU ISA debug exit port
+ACPI_POWER_OFF       0x2000  Magic value for QEMU power-off
+
+
+FUNCTIONS
+
+void acpi_power_off(void)
+
+  Power off the system.
+
+  Writes 0x2000 to I/O port 0x604 (QEMU ISA debug exit device).
+  Falls through to an infinite hlt loop if the write has no effect.
+
+  Parameters: None
+  Returns: Does not return
+
+  Notes:
+    Works in QEMU with: -device isa-debug-exit,iobase=0x604,iosize=0x04
+    On real hardware, a full ACPI shutdown sequence would be required.
+
+
+void reboot(void)
+
+  Restart the system via the PS/2 keyboard controller.
+
+  Sequence:
+    1. cli -- disable interrupts
+    2. Drain any pending data from port 0x60
+    3. Pulse the reset line via keyboard controller command 0xFE (port 0x64)
+    4. Infinite hlt loop as fallback
+
+  Parameters: None
+  Returns: Does not return
+
+
+void halt(void)
+
+  Halt the CPU permanently.
+
+  Disables interrupts then loops on hlt. Used as a last resort when the
+  kernel cannot recover from a fatal error.
+
+  Parameters: None
+  Returns: Does not return
+
+
+USAGE
+
+Called from shell built-in commands:
+
+  shutdown  ->  acpi_power_off()
+  reboot    ->  reboot()
+
+Also available for use in error paths:
+
+  halt();   // after unrecoverable fault
+
+
+LOCATION
+
+  kernel/power.c
+  kernel/power.h
