@@ -83,9 +83,12 @@ Located in kernel/paging.c and kernel/paging.h:
 
 CURRENT STATE
 
-paging_init() is called from kernel_main() before heap_init(). The heap
-region starting at 0x100000 is covered by the identity-mapped page tables
-set up in paging_init(), so kmalloc operates on mapped memory.
+paging_init() is called from kernel_main() before heap_init(). The first
+16MB of physical memory is identity-mapped by filling page tables[0..3]
+with present, read/write entries before CR0.PG is set. This covers the
+kernel code, static BSS (including the 4MB of page tables themselves), and
+the Rust allocator range starting at 8MB. Without these mappings the CPU
+triple-faulted immediately after enabling paging.
 
 User-space pages, demand paging, and a page fault handler are not yet
 implemented.
