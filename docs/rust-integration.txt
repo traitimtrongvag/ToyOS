@@ -64,6 +64,27 @@ rust_print_stats()
 
 rust_get_total_memory() -> u32
 rust_get_free_memory() -> u32
+rust_get_allocated_memory() -> u32
+rust_is_valid_page(page: u32) -> bool
+
+rust_vfs_init()
+  Initialize the in-memory VFS. Must be called before any VFS operation.
+
+rust_process_create(priority: u8, name: *const u8) -> u32
+  Create a process entry in the Rust process table.
+  Returns the new PID, or 0 on failure.
+
+rust_process_terminate(pid: u32) -> bool
+  Mark process as terminated. Returns true on success.
+
+rust_process_schedule() -> u32
+  Return the PID of the next ready process (round-robin).
+
+rust_ipc_send(msg_type, sender_pid, receiver_pid, data, data_len) -> bool
+  Enqueue a message in the global message queue.
+
+rust_ipc_has_message(receiver_pid: u32) -> bool
+  Return true if there is a pending message for receiver_pid.
 
 
 FFI IMPORTS
