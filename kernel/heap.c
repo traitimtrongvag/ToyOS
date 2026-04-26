@@ -2,9 +2,20 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define HEAP_START 0x00100000
-#define HEAP_SIZE 0x00100000
-#define BLOCK_SIZE 16
+/*
+ * heap.c - simple first-fit kernel heap
+ *
+ * HEAP_START must sit above the kernel image and the 4MB of identity-mapped
+ * page tables that paging_init() places starting at 1MB. Using 0xC00000
+ * (12MB) gives a safe gap above the Rust page allocator range
+ * (0x800000 - 0xBFFFFF) so the two allocators never overlap.
+ *
+ * HEAP_SIZE is 1MB — enough for boot-time allocation without eating into
+ * the Rust-managed frame pool.
+ */
+#define HEAP_START  0x00C00000u
+#define HEAP_SIZE   0x00100000u
+#define BLOCK_ALIGN 16u
 
 typedef struct heap_block {
     size_t size;
@@ -25,7 +36,7 @@ void heap_init(void) {
 }
 
 static void split_block(heap_block_t* block, size_t size) {
-    if (block->size >= size + sizeof(heap_block_t) + BLOCK_SIZE) {
+    if (block->size >= size + sizeof(heap_block_t) + BLOCK_ALIGN) {
         heap_block_t* new_block = (heap_block_t*)((uint8_t*)block + sizeof(heap_block_t) + size);
         new_block->size = block->size - size - sizeof(heap_block_t);
         new_block->used = false;
@@ -49,7 +60,7 @@ static void merge_free_blocks(void) {
 
 void* kmalloc(size_t size) {
     if (size == 0) return NULL;
-    size = (size + BLOCK_SIZE - 1) & ~(BLOCK_SIZE - 1);
+    size = (size + BLOCK_ALIGN - 1) & ~(BLOCK_ALIGN - 1);
     heap_block_t* current = heap_start;
     while (current) {
         if (!current->used && current->size >= size) {
