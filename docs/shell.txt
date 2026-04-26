@@ -1,0 +1,84 @@
+Shell
+
+
+OVERVIEW
+
+Interactive command-line interface for ToyOS. Accepts keyboard input one
+character at a time, echoes characters to the terminal, and dispatches
+completed lines to built-in command handlers.
+
+Location: kernel/shell.c, kernel/shell.h
+
+
+STATE
+
+  command_buffer[256]    Line buffer for current input
+  buffer_pos             Current write position in buffer
+
+
+INITIALIZATION
+
+shell_init()
+  Clear the input buffer.
+  Print welcome message and first prompt.
+  Called from kernel_main() after all subsystems are initialized.
+
+
+INPUT HANDLING
+
+shell_handle_input(char c)
+  Called by keyboard_handler() for each key press.
+
+  Enter (\n):
+    Null-terminate command_buffer.
+    Call parse_and_execute().
+    Reset buffer_pos to 0.
+    Print next prompt.
+
+  Backspace (\b):
+    Decrement buffer_pos if non-zero.
+    Write \b to terminal (moves cursor back).
+
+  Printable character:
+    Store in command_buffer[buffer_pos].
+    Increment buffer_pos.
+    Echo character to terminal.
+    Silently drop input if buffer is full.
+
+
+PROMPT
+
+  Color: Light green (0x0A) for "toyos> ", white (0x0F) for user input.
+
+
+COMMAND PARSING
+
+parse_and_execute()
+  1. Skip leading spaces.
+  2. Scan to first space to isolate command name.
+  3. Skip spaces after command to isolate arguments.
+  4. Look up command in if/else dispatch table.
+  5. Print "Unknown command: <name>" for unrecognized input.
+
+
+BUILT-IN COMMANDS
+
+  help           List all available commands.
+  clear          Re-initialize terminal (clear screen, reset cursor).
+  version        Print "ToyOS v0.1" and language summary.
+  meminfo        Call rust_print_stats() to display page counts.
+  time           Display elapsed time formatted as HH:MM:SS from timer_ticks.
+  rtc            Read hardware RTC and print date/time.
+  vfs            Run VFS demo: create, write, read a test file.
+  syscall-test   Run syscall_test() and display results.
+  echo <args>    Write arguments to terminal followed by newline.
+  shutdown       Print message then call acpi_power_off().
+  reboot         Print message then call reboot().
+
+
+LIMITATIONS
+
+- No command history.
+- No tab completion.
+- Fixed 256-byte line buffer (excess input silently dropped).
+- No pipes or redirection.
