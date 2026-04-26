@@ -32,6 +32,10 @@ void paging_init(void) {
         kernel_directory.tables_physical[i] = ((uint32_t)&kernel_tables[i]) | PAGE_PRESENT | PAGE_WRITE;
     }
 
+    /* Identity-map the first 16MB (page tables 0..3) — present + read/write.
+     * Coverage: kernel image (1MB), static BSS/page tables (1-5MB),
+     * Rust allocator (8-12MB), and kernel heap (12-13MB).
+     * Without these mappings the CPU triple-faults the moment CR0.PG is set. */
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 1024; j++) {
             kernel_tables[i].pages[j].present = 1;
