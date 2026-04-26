@@ -31,24 +31,38 @@ KERNEL INITIALIZATION
 Flow in kernel_main():
 
   terminal_initialize()
+  serial_init()          -- must run before first terminal output; mirrors all output to COM1
   Display banner
   gdt_install()
   idt_install()
   irq_install()
   timer_install()
   keyboard_init()
-  serial_init()
   paging_init()          -- must run before heap_init so page tables cover heap region
   heap_init()
   task_init()
   syscall_init()
   rust_memory_init()
+  rust_vfs_init()
   rust_allocate_page()   -- smoke test
   rust_print_stats()
   cpp_driver_init()
   cpp_driver_test()
+  task_test()
+  syscall_test()
+  vfs_demo()
   shell_init()
   sti + infinite hlt loop
+
+
+SERIAL MIRRORING
+
+terminal_putchar() calls serial_putchar() on every character, so all VGA
+output is duplicated to COM1. serial_init() must be called before the first
+terminal_writestring() or any output will be lost from the serial log.
+
+Access serial output in QEMU:
+  qemu-system-i386 -kernel build/toyos.elf -serial stdio
 
 
 COLOR SCHEME
