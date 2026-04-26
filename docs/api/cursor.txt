@@ -1,0 +1,88 @@
+Cursor API
+
+
+CONSTANTS
+
+VGA_CTRL_REGISTER   0x3D4   VGA index/control port
+VGA_DATA_REGISTER   0x3D5   VGA data port
+VGA_WIDTH           80      Screen width in character columns
+
+
+ENABLE / DISABLE
+
+void cursor_enable(uint8_t cursor_start, uint8_t cursor_end)
+
+  Enable the hardware text cursor and set its scanline range.
+
+  Parameters:
+    cursor_start   First scanline of cursor (0-15)
+    cursor_end     Last scanline of cursor (0-15)
+
+  Returns: Nothing
+
+  Example:
+    cursor_enable(14, 15);  // Underline cursor (bottom two scanlines)
+
+
+void cursor_disable(void)
+
+  Hide the hardware cursor by setting bit 5 of register 0x0A.
+
+  Parameters: None
+  Returns: Nothing
+
+
+POSITION
+
+void cursor_set_position(uint8_t x, uint8_t y)
+
+  Move cursor to column x, row y.
+
+  Computes linear position as y * 80 + x and writes it to
+  VGA registers 14 (high byte) and 15 (low byte).
+
+  Parameters:
+    x   Column (0-79)
+    y   Row (0-24)
+
+  Returns: Nothing
+
+
+uint16_t cursor_get_position(void)
+
+  Read the current cursor position from VGA hardware.
+
+  Returns linear position: row * 80 + column.
+
+  Parameters: None
+
+  Returns:
+    Linear cursor position (0 - 1999)
+
+
+MOVEMENT
+
+void cursor_move_right(void)
+
+  Advance cursor one column to the right.
+  Does nothing if already at column 79.
+
+  Parameters: None
+  Returns: Nothing
+
+
+void cursor_move_left(void)
+
+  Move cursor one column to the left.
+  Does nothing if already at column 0.
+
+  Parameters: None
+  Returns: Nothing
+
+
+NOTES
+
+The VGA hardware cursor is separate from the software position tracked by
+the terminal driver (terminal_row, terminal_column). cursor_set_position()
+moves the visible blinking cursor; it does not update the terminal driver
+state. Use vga_move_cursor() from the C++ VGA driver for coordinated moves.
