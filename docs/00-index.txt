@@ -10,6 +10,9 @@ Core Documentation:
   virtual-memory.txt      Paging and address translation
   rust-integration.txt    FFI and memory allocator
   driver-layer.txt        C++ driver architecture
+  vfs-layer.txt           Virtual file system
+  syscall-interface.txt   System call interface
+  shell.txt               Interactive shell
 
 API Reference:
 
@@ -20,6 +23,8 @@ API Reference:
   api/timer.txt           Timer initialization and delays
   api/serial.txt          Serial port communication
   api/driver.txt          Driver subsystem
+  api/cursor.txt          Hardware cursor control
+  api/power.txt           Shutdown and reboot
 
 ABI Specifications:
 
