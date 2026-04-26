@@ -21,9 +21,11 @@ uint32_t rust_allocate_page(void)
 
 void rust_free_page(uint32_t page)
 
-  Mark page as freed.
+  Return page to the free-list for reuse.
   
-  Note: Current implementation does not reuse freed pages.
+  Validates alignment and range before accepting.
+  Freed pages are handed out again by rust_allocate_page()
+  before the bump pointer is advanced.
 
 
 void rust_print_stats(void)
@@ -48,6 +50,7 @@ CONSTANTS
   Page size: 4096 bytes
   Total pages: 1024
   Total memory: 4MB
+  Start address: 0x800000 (above kernel image and page tables)
 
 
 EXAMPLE
