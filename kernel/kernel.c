@@ -1,10 +1,18 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "string.h"
 
-#define VGA_WIDTH 80
-#define VGA_HEIGHT 25
-#define VGA_MEMORY 0xB8000
-#define TAB_WIDTH 4
+/*
+ * kernel.c - VGA terminal driver + kernel_main
+ *
+ * Dimensions and magic values are named constants so any change to VGA
+ * geometry only needs to happen in one place.
+ */
+
+#define VGA_WIDTH    80
+#define VGA_HEIGHT   25
+#define VGA_MEMORY   0xB8000u
+#define TAB_WIDTH    4
 
 typedef enum {
     VGA_COLOR_BLACK = 0,
@@ -33,12 +41,7 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
     return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-size_t strlen(const char* str) {
-    size_t len = 0;
-    while (str[len])
-        len++;
-    return len;
-}
+/* strlen is provided by kernel/string.c */
 
 static size_t terminal_row;
 static size_t terminal_column;
@@ -139,6 +142,9 @@ void terminal_writestring(const char* data) {
 extern void rust_memory_init(void);
 extern uint32_t rust_allocate_page(void);
 extern void rust_print_stats(void);
+extern uint32_t rust_get_free_memory(void);
+extern uint32_t rust_get_total_memory(void);
+extern void rust_vfs_init(void);
 extern void cpp_driver_init(void);
 extern void cpp_driver_test(void);
 extern void gdt_install(void);
@@ -201,6 +207,8 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK));
     terminal_writestring("[RUST] Initializing memory manager...\n");
     rust_memory_init();
+    terminal_writestring("[RUST] Initializing VFS...\n");
+    rust_vfs_init();
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK));
     terminal_writestring("[RUST] Allocating test page...\n");
     rust_allocate_page();
