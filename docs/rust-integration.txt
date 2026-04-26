@@ -33,8 +33,13 @@ Static state:
 Constants:
   TOTAL_PAGES   = 1024
   PAGE_SIZE     = 4096
-  MIN_PAGE_ADDR = 0x100000
+  MIN_PAGE_ADDR = 0x800000
   MAX_PAGE_ADDR = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE)
+
+MIN_PAGE_ADDR starts above the kernel image. The kernel loads at 1MB and
+static BSS (including 4MB of page tables) extends to roughly 5MB. Using
+0x800000 (8MB) avoids overwriting kernel text/data, which previously caused
+an Invalid Opcode panic when paging was enabled.
 
 
 EXPORTED FUNCTIONS
@@ -75,10 +80,13 @@ ATOMIC OPERATIONS
 
 AtomicU32 provides lock-free synchronization:
 
-fetch_add(n, Ordering::SeqCst)
+fetch_add(n, Ordering::Relaxed)
   Atomically increment and return old value
 
-SeqCst = Sequential consistency (strongest ordering)
+Relaxed ordering is used throughout. SeqCst emits MFENCE (an SSE2
+instruction) which is illegal on this bare-metal i686 target. On a
+single-core kernel there is no need for a memory fence, so Relaxed is both
+correct and sufficient.
 
 
 ALLOCATION ALGORITHM
@@ -105,3 +113,18 @@ Unsafe required for:
   - Raw pointers
 
 Minimal unsafe surface area.
+
+
+INTEGER PRINTING
+
+print_u32() converts a u32 to decimal digits without using division or
+modulo operators. Division and modulo on u32 call __udivsi3/__umodsi3 from
+compiler-rt; those symbols are not available in bare-metal builds and cause
+an Invalid Opcode (UD2) trap at runtime.
+
+Implementation uses a table of powers of ten with repeated subtraction:
+  1. Find the highest power of 10 that fits into the value.
+  2. Count subtractions to produce each decimal digit.
+  3. Write each digit via terminal_putchar().
+
+This avoids any dependency on the compiler runtime for integer arithmetic.
