@@ -67,6 +67,17 @@ C++ exports:
   extern "C" void cpp_driver_init()
 
 
+STRING LIBRARY
+
+kernel/string.c provides freestanding replacements for <string.h>:
+  memset, memcpy, memmove, memcmp
+  strlen, strnlen
+  strcpy, strncpy
+  strcmp, strncmp
+
+All functions guard against NULL inputs. No libc dependency.
+
+
 COMMON ISSUES
 
 "undefined reference to __stack_chk_fail"
