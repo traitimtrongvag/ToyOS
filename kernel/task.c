@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include "task.h"
 
-#define MAX_TASKS 8
+#define MAX_TASKS        8
+#define TASK_STACK_WORDS 1024   /* 4KB per task stack */
 
 typedef struct {
     uint32_t eax, ebx, ecx, edx;
@@ -24,7 +25,7 @@ static uint32_t current_task = 0;
 /* volatile: read in task_switch (timer ISR context), written in task_create.
  * Safe on uniprocessor; would need cli/sti protection for SMP. */
 static volatile uint32_t task_count = 0;
-static uint32_t task_stacks[MAX_TASKS][1024] __attribute__((aligned(16)));
+static uint32_t task_stacks[MAX_TASKS][TASK_STACK_WORDS] __attribute__((aligned(16)));
 
 uint32_t task_create(void (*entry)(void)) {
     if (task_count >= MAX_TASKS) return (uint32_t)-1;
@@ -32,7 +33,7 @@ uint32_t task_create(void (*entry)(void)) {
     tasks[tid].id = tid;
     tasks[tid].state = TASK_READY;
     tasks[tid].stack = task_stacks[tid];
-    uint32_t* stack_top = &task_stacks[tid][1024];
+    uint32_t* stack_top = &task_stacks[tid][TASK_STACK_WORDS];
     stack_top--; *stack_top = 0x00000202;
     stack_top--; *stack_top = 0x08;
     stack_top--; *stack_top = (uint32_t)entry;

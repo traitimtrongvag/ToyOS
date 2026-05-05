@@ -46,7 +46,46 @@ static void version_cmd(void) {
 
 static void meminfo_cmd(void) {
     extern void rust_print_stats(void);
-    terminal_writestring("Memory Information:\n");
+    extern uint32_t heap_get_used(void);
+    extern uint32_t heap_get_free(void);
+
+    terminal_writestring("=== Memory Info ===\n");
+
+    /* Kernel heap (kmalloc pool) */
+    terminal_writestring("Heap used : ");
+    uint32_t used = heap_get_used();
+    /* Print used bytes via simple digit loop to avoid compiler-rt division */
+    static const uint32_t POW10[] = {
+        1000000000u, 100000000u, 10000000u, 1000000u,
+        100000u, 10000u, 1000u, 100u, 10u, 1u
+    };
+    int started = 0;
+    uint32_t v = used;
+    for (int i = 0; i < 10; i++) {
+        if (!started && v < POW10[i]) continue;
+        started = 1;
+        int d = 0;
+        while (v >= POW10[i]) { v -= POW10[i]; d++; }
+        terminal_putchar('0' + d);
+    }
+    if (!started) terminal_putchar('0');
+    terminal_writestring(" bytes\n");
+
+    terminal_writestring("Heap free : ");
+    started = 0;
+    v = heap_get_free();
+    for (int i = 0; i < 10; i++) {
+        if (!started && v < POW10[i]) continue;
+        started = 1;
+        int d = 0;
+        while (v >= POW10[i]) { v -= POW10[i]; d++; }
+        terminal_putchar('0' + d);
+    }
+    if (!started) terminal_putchar('0');
+    terminal_writestring(" bytes\n");
+
+    /* Rust page allocator stats */
+    terminal_writestring("Page allocator:\n");
     rust_print_stats();
 }
 
