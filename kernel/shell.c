@@ -89,21 +89,36 @@ static void meminfo_cmd(void) {
     rust_print_stats();
 }
 
+/* div_u32: integer divide n/d without / operator (avoids __divsi3).
+ * Returns quotient; stores remainder in *rem. */
+static uint32_t div_u32(uint32_t n, uint32_t d, uint32_t *rem) {
+    uint32_t q = 0;
+    while (n >= d) { n -= d; q++; }
+    if (rem) *rem = n;
+    return q;
+}
+
 static void time_cmd(void) {
     extern uint32_t timer_ticks;
     terminal_writestring("System uptime: ");
-    uint32_t seconds = timer_ticks / 100;
-    uint32_t minutes = seconds / 60;
-    uint32_t hours = minutes / 60;
-    char buf[16];
-    buf[0] = '0' + (hours / 10);
-    buf[1] = '0' + (hours % 10);
+    uint32_t seconds = div_u32(timer_ticks, 100, 0);
+    uint32_t sec_rem;
+    uint32_t total_min = div_u32(seconds, 60, &sec_rem);
+    uint32_t min_rem;
+    uint32_t hours = div_u32(total_min, 60, &min_rem);
+    uint32_t h10, h1_r, m10, m1_r, s10, s1_r;
+    h10  = div_u32(hours,   10, &h1_r);
+    m10  = div_u32(min_rem, 10, &m1_r);
+    s10  = div_u32(sec_rem, 10, &s1_r);
+    char buf[9];
+    buf[0] = '0' + (uint8_t)h10;
+    buf[1] = '0' + (uint8_t)h1_r;
     buf[2] = ':';
-    buf[3] = '0' + ((minutes % 60) / 10);
-    buf[4] = '0' + ((minutes % 60) % 10);
+    buf[3] = '0' + (uint8_t)m10;
+    buf[4] = '0' + (uint8_t)m1_r;
     buf[5] = ':';
-    buf[6] = '0' + ((seconds % 60) / 10);
-    buf[7] = '0' + ((seconds % 60) % 10);
+    buf[6] = '0' + (uint8_t)s10;
+    buf[7] = '0' + (uint8_t)s1_r;
     buf[8] = '\0';
     terminal_writestring(buf);
     terminal_writestring("\n");
@@ -111,8 +126,10 @@ static void time_cmd(void) {
 
 static void print_two_digits(uint8_t val) {
     char buf[3];
-    buf[0] = '0' + val / 10;
-    buf[1] = '0' + val % 10;
+    uint32_t hi, lo;
+    hi = div_u32(val, 10, &lo);
+    buf[0] = '0' + (uint8_t)hi;
+    buf[1] = '0' + (uint8_t)lo;
     buf[2] = '\0';
     terminal_writestring(buf);
 }
