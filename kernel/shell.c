@@ -136,10 +136,15 @@ static void print_two_digits(uint8_t val) {
 
 static void print_year(uint16_t year) {
     char buf[5];
-    buf[0] = '0' + year / 1000;
-    buf[1] = '0' + (year % 1000) / 100;
-    buf[2] = '0' + (year % 100) / 10;
-    buf[3] = '0' + year % 10;
+    uint32_t y = year, r1, r2, r3, d0, d1, d2, d3;
+    d0 = div_u32(y,  1000, &r1);
+    d1 = div_u32(r1, 100,  &r2);
+    d2 = div_u32(r2, 10,   &r3);
+    d3 = r3;
+    buf[0] = '0' + (uint8_t)d0;
+    buf[1] = '0' + (uint8_t)d1;
+    buf[2] = '0' + (uint8_t)d2;
+    buf[3] = '0' + (uint8_t)d3;
     buf[4] = '\0';
     terminal_writestring(buf);
 }
