@@ -236,8 +236,9 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
         extern void shell_handle_input(char);
         if (serial_data_ready()) {
             char c = serial_getchar();
-            /* Normalize CR (Enter key over serial) to LF */
             if (c == '\r') c = '\n';
+            /* Terminals send DEL (0x7F) for backspace key over serial */
+            if (c == 0x7F) c = '\b';
             shell_handle_input(c);
         }
         __asm__ volatile("hlt");

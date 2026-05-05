@@ -262,6 +262,9 @@ void shell_handle_input(char c) {
     } else if (c == '\b') {
         if (buffer_pos > 0) {
             buffer_pos--;
+            /* BS-space-BS: move back, erase char, move back again */
+            terminal_putchar('\b');
+            terminal_putchar(' ');
             terminal_putchar('\b');
         }
     } else if (buffer_pos < SHELL_BUFFER_SIZE - 1) {
