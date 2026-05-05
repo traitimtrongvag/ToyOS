@@ -253,16 +253,108 @@ void shell_init(void) {
     shell_prompt();
 }
 
+#define HISTORY_SIZE 16
+
+static char history[HISTORY_SIZE][SHELL_BUFFER_SIZE];
+static int  history_count = 0;   /* total entries saved, max HISTORY_SIZE */
+static int  history_idx   = -1;  /* -1 = not browsing history */
+
+/* ANSI escape parser state */
+#define ESC_NONE  0
+#define ESC_GOT_ESC  1
+#define ESC_GOT_BRACKET 2
+static int esc_state = ESC_NONE;
+
+static void history_push(const char* cmd) {
+    if (cmd[0] == '\0') return;
+    /* Don't push duplicate of last entry */
+    if (history_count > 0) {
+        int last = (history_count - 1) % HISTORY_SIZE;
+        int same = 1;
+        for (int i = 0; i < SHELL_BUFFER_SIZE; i++) {
+            if (history[last][i] != cmd[i]) { same = 0; break; }
+            if (cmd[i] == '\0') break;
+        }
+        if (same) return;
+    }
+    int slot = history_count % HISTORY_SIZE;
+    for (int i = 0; i < SHELL_BUFFER_SIZE - 1 && cmd[i]; i++)
+        history[slot][i] = cmd[i];
+    history[slot][SHELL_BUFFER_SIZE - 1] = '\0';
+    history_count++;
+}
+
+/* Erase current input line and replace with new string */
+static void replace_line(const char* newcmd) {
+    /* Erase chars already on screen */
+    while (buffer_pos > 0) {
+        terminal_putchar('\b');
+        terminal_putchar(' ');
+        terminal_putchar('\b');
+        buffer_pos--;
+    }
+    /* Write new command */
+    for (int i = 0; newcmd[i] && i < SHELL_BUFFER_SIZE - 1; i++) {
+        command_buffer[buffer_pos++] = newcmd[i];
+        terminal_putchar(newcmd[i]);
+    }
+}
+
 void shell_handle_input(char c) {
+    /* ANSI escape sequence: ESC [ A/B/C/D */
+    if (esc_state == ESC_NONE && c == 0x1B) {
+        esc_state = ESC_GOT_ESC;
+        return;
+    }
+    if (esc_state == ESC_GOT_ESC) {
+        if (c == '[') { esc_state = ESC_GOT_BRACKET; return; }
+        esc_state = ESC_NONE;
+        return;
+    }
+    if (esc_state == ESC_GOT_BRACKET) {
+        esc_state = ESC_NONE;
+        if (c == 'A') {
+            /* Arrow UP — older history */
+            if (history_count == 0) return;
+            if (history_idx == -1)
+                history_idx = history_count - 1;
+            else if (history_idx > 0)
+                history_idx--;
+            int slot = history_idx % HISTORY_SIZE;
+            replace_line(history[slot]);
+        } else if (c == 'B') {
+            /* Arrow DOWN — newer history */
+            if (history_idx == -1) return;
+            if (history_idx < history_count - 1) {
+                history_idx++;
+                int slot = history_idx % HISTORY_SIZE;
+                replace_line(history[slot]);
+            } else {
+                /* Past newest — clear line */
+                replace_line("");
+                history_idx = -1;
+            }
+        } else if (c == 'C') {
+            /* Arrow RIGHT — move cursor forward one char (visual only) */
+            (void)0; /* no editable cursor position tracking yet */
+        } else if (c == 'D') {
+            /* Arrow LEFT — move cursor back one char (visual only) */
+            (void)0;
+        }
+        return;
+    }
+
     if (c == '\n') {
         terminal_putchar('\n');
+        command_buffer[buffer_pos] = '\0';
+        history_push(command_buffer);
+        history_idx = -1;
         parse_and_execute();
         buffer_pos = 0;
         shell_prompt();
     } else if (c == '\b') {
         if (buffer_pos > 0) {
             buffer_pos--;
-            /* BS-space-BS: move back, erase char, move back again */
             terminal_putchar('\b');
             terminal_putchar(' ');
             terminal_putchar('\b');
