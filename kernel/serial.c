@@ -15,7 +15,17 @@ static int serial_transmit_empty(void) {
     return inb(SERIAL_COM1 + 5) & 0x20;
 }
 
+int serial_data_ready(void) {
+    return inb(SERIAL_COM1 + 5) & 0x01;
+}
+
+char serial_getchar(void) {
+    while (!serial_data_ready());
+    return (char)inb(SERIAL_COM1);
+}
+
 void serial_putchar(char c) {
+    if (c == '\n') serial_putchar('\r');
     while (serial_transmit_empty() == 0);
     outb(SERIAL_COM1, c);
 }
