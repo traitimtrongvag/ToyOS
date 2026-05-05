@@ -228,5 +228,18 @@ void kernel_main(uint32_t magic, void* multiboot_info) {
     shell_init();
     
     __asm__ volatile("sti");
-    for (;;) __asm__ volatile("hlt");
+    for (;;) {
+        /* Poll serial input so the shell works over -nographic / -serial stdio.
+         * PS/2 keyboard input still arrives via IRQ1 as before. */
+        extern int  serial_data_ready(void);
+        extern char serial_getchar(void);
+        extern void shell_handle_input(char);
+        if (serial_data_ready()) {
+            char c = serial_getchar();
+            /* Normalize CR (Enter key over serial) to LF */
+            if (c == '\r') c = '\n';
+            shell_handle_input(c);
+        }
+        __asm__ volatile("hlt");
+    }
 }

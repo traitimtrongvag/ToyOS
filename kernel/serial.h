@@ -9,6 +9,8 @@
 #define SERIAL_COM4 0x2E8
 
 void serial_init(void);
+int  serial_data_ready(void);
+char serial_getchar(void);
 void serial_putchar(char c);
 void serial_write(const char* str);
 void serial_write_hex(uint32_t value);
