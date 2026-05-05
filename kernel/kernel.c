@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* Forward declaration needed by terminal_putchar (defined in cursor.c) */
+void cursor_set_position(uint8_t x, uint8_t y);
+
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_MEMORY 0xB8000
@@ -96,10 +99,10 @@ void terminal_putchar(char c) {
     switch (c) {
         case '\n':
             terminal_newline();
-            return;
+            goto update_cursor;
         case '\r':
             terminal_column = 0;
-            return;
+            goto update_cursor;
         case '\t': {
             size_t spaces_to_add = TAB_WIDTH - (terminal_column % TAB_WIDTH);
             for (size_t i = 0; i < spaces_to_add && terminal_column < VGA_WIDTH; i++) {
@@ -109,7 +112,7 @@ void terminal_putchar(char c) {
             if (terminal_column >= VGA_WIDTH) {
                 terminal_newline();
             }
-            return;
+            goto update_cursor;
         }
         case '\b':
             /* Backspace: move cursor back one position if possible */
@@ -117,7 +120,7 @@ void terminal_putchar(char c) {
                 terminal_column--;
                 terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
             }
-            return;
+            goto update_cursor;
     }
     
     /* Regular printable character */
@@ -125,6 +128,9 @@ void terminal_putchar(char c) {
     if (++terminal_column == VGA_WIDTH) {
         terminal_newline();
     }
+
+update_cursor:
+    cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
 }
 
 void terminal_write(const char* data, size_t size) {
