@@ -34,6 +34,10 @@ uint32_t timer_get_ticks(void) {
 }
 
 void timer_wait(uint32_t ticks) {
+    /* Guard against tick_count being so close to UINT32_MAX that adding
+     * ticks wraps to a value already less than tick_count, which would
+     * make the while-loop spin forever. In that edge case, just return. */
+    if (tick_count + ticks < tick_count) return;
     uint32_t target = tick_count + ticks;
     /* Interrupts must be enabled here — the timer IRQ increments tick_count.
      * Callers must not invoke timer_wait from a disabled-interrupt context. */
