@@ -102,35 +102,36 @@ void syscall_init(void) {
     idt_set_gate(SYSCALL_INT, (uint32_t)syscall_handler, 0x08, 0xEE);
 }
 
+/*
+ * itoa_simple: convert int32_t to decimal string without using / or %.
+ *
+ * Division on i686 baremetal calls __divsi3 from compiler-rt which is not
+ * linked in a freestanding build. Use a powers-of-ten subtraction loop
+ * identical to the approach used in the Rust print_u32 fix.
+ */
 void itoa_simple(int32_t val, char* buf) {
+    static const uint32_t powers[] = {
+        1000000000u, 100000000u, 10000000u, 1000000u,
+        100000u,     10000u,     1000u,     100u,
+        10u,         1u
+    };
+    static const int NUM_POWERS = 10;
+
+    if (val == 0) { buf[0] = '0'; buf[1] = '\0'; return; }
+
     int i = 0;
-    int is_negative = 0;
+    uint32_t uval;
+    if (val < 0) { buf[i++] = '-'; uval = (uint32_t)(-(val + 1)) + 1u; }
+    else          { uval = (uint32_t)val; }
 
-    if (val == 0) {
-        buf[0] = '0';
-        buf[1] = '\0';
-        return;
+    int started = 0;
+    for (int p = 0; p < NUM_POWERS; p++) {
+        uint32_t power = powers[p];
+        if (!started && uval < power) continue;
+        started = 1;
+        int digit = 0;
+        while (uval >= power) { uval -= power; digit++; }
+        buf[i++] = '0' + digit;
     }
-
-    if (val < 0) {
-        is_negative = 1;
-        val = -val;
-    }
-
-    while (val > 0) {
-        buf[i++] = '0' + (val % 10);
-        val /= 10;
-    }
-
-    if (is_negative) {
-        buf[i++] = '-';
-    }
-
     buf[i] = '\0';
-
-    for (int j = 0; j < i / 2; j++) {
-        char temp = buf[j];
-        buf[j] = buf[i - j - 1];
-        buf[i - j - 1] = temp;
-    }
 }
