@@ -142,6 +142,21 @@ void terminal_writestring(const char* data) {
     terminal_write(data, strlen(data));
 }
 
+/* Move the visible cursor left/right, keeping terminal_column in sync */
+void terminal_move_cursor_left(void) {
+    if (terminal_column > 0) {
+        terminal_column--;
+        cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
+    }
+}
+
+void terminal_move_cursor_right(void) {
+    if (terminal_column < VGA_WIDTH - 1) {
+        terminal_column++;
+        cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
+    }
+}
+
 extern void rust_memory_init(void);
 extern uint32_t rust_allocate_page(void);
 extern void rust_print_stats(void);
