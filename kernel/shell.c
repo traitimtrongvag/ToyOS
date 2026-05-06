@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include "terminal.h"
 #include "string.h"
-#include "cursor.h"
 
 #define SHELL_BUFFER_SIZE 256
 
@@ -337,10 +336,10 @@ void shell_handle_input(char c) {
             }
         } else if (c == 'C') {
             /* Arrow RIGHT — move cursor forward one char */
-            cursor_move_right();
+            terminal_move_cursor_right();
         } else if (c == 'D') {
             /* Arrow LEFT — move cursor back one char */
-            cursor_move_left();
+            terminal_move_cursor_left();
         }
         return;
     }
