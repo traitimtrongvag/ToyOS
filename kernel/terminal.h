@@ -8,5 +8,7 @@ void terminal_initialize(void);
 void terminal_putchar(char c);
 void terminal_writestring(const char* data);
 void terminal_setcolor(uint8_t color);
+void terminal_move_cursor_left(void);
+void terminal_move_cursor_right(void);
 
 #endif
