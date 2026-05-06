@@ -6,7 +6,8 @@
 #define SHELL_BUFFER_SIZE 256
 
 static char command_buffer[SHELL_BUFFER_SIZE];
-static uint32_t buffer_pos = 0;
+static uint32_t buffer_pos = 0;  /* total chars in buffer */
+static uint32_t cursor_pos = 0;  /* cursor position within buffer (0..buffer_pos) */
 
 extern void terminal_writestring(const char* str);
 extern void terminal_putchar(char c);
@@ -35,6 +36,7 @@ static void help_cmd(void) {
     terminal_writestring("  vfs          - Run VFS demo (create/write/read)\n");
     terminal_writestring("  syscall-test - Run syscall interface tests\n");
     terminal_writestring("  echo         - Echo arguments\n");
+    terminal_writestring("  keys         - Toggle key debug (show hex of each byte)\n");
     terminal_writestring("  shutdown     - Power off\n");
     terminal_writestring("  reboot       - Restart system\n");
 }
@@ -197,6 +199,25 @@ static void echo_cmd(const char* args) {
     terminal_writestring("\n");
 }
 
+/* Debug: print hex of every byte received. Toggle with 'keys' command */
+static int keys_debug = 0;
+
+static void keys_cmd(void) {
+    keys_debug = !keys_debug;
+    if (keys_debug)
+        terminal_writestring("Key debug ON — press keys to see hex. Type 'keys' again to stop.\n");
+    else
+        terminal_writestring("Key debug OFF.\n");
+}
+
+static void print_hex_byte(uint8_t b) {
+    const char hex[] = "0123456789ABCDEF";
+    terminal_writestring("0x");
+    terminal_putchar(hex[(b >> 4) & 0xF]);
+    terminal_putchar(hex[b & 0xF]);
+    terminal_putchar(' ');
+}
+
 static void parse_and_execute(void) {
     if (buffer_pos == 0) return;
     command_buffer[buffer_pos] = '\0';
@@ -229,6 +250,8 @@ static void parse_and_execute(void) {
         syscall_test_cmd();
     } else if (strcmp(cmd, "echo") == 0) {
         echo_cmd(args);
+    } else if (strcmp(cmd, "keys") == 0) {
+        keys_cmd();
     } else if (strcmp(cmd, "shutdown") == 0) {
         terminal_setcolor(0x0C);
         terminal_writestring("Shutting down...\n");
@@ -298,9 +321,16 @@ static void replace_line(const char* newcmd) {
         command_buffer[buffer_pos++] = newcmd[i];
         terminal_putchar(newcmd[i]);
     }
+    cursor_pos = buffer_pos;
 }
 
 void shell_handle_input(char c) {
+    /* Key debug mode: print every byte as hex */
+    if (keys_debug) {
+        print_hex_byte((uint8_t)c);
+        return;
+    }
+
     /* ANSI escape sequence: ESC [ A/B/C/D */
     if (esc_state == ESC_NONE && c == 0x1B) {
         esc_state = ESC_GOT_ESC;
@@ -335,11 +365,17 @@ void shell_handle_input(char c) {
                 history_idx = -1;
             }
         } else if (c == 'C') {
-            /* Arrow RIGHT — move cursor forward one char */
-            terminal_move_cursor_right();
+            /* Arrow RIGHT — move cursor forward, but not past end of input */
+            if (cursor_pos < buffer_pos) {
+                cursor_pos++;
+                terminal_move_cursor_right();
+            }
         } else if (c == 'D') {
-            /* Arrow LEFT — move cursor back one char */
-            terminal_move_cursor_left();
+            /* Arrow LEFT — move cursor back, but not before start of input */
+            if (cursor_pos > 0) {
+                cursor_pos--;
+                terminal_move_cursor_left();
+            }
         }
         return;
     }
@@ -351,16 +387,19 @@ void shell_handle_input(char c) {
         history_idx = -1;
         parse_and_execute();
         buffer_pos = 0;
+        cursor_pos = 0;
         shell_prompt();
     } else if (c == '\b') {
         if (buffer_pos > 0) {
             buffer_pos--;
+            cursor_pos = buffer_pos;
             terminal_putchar('\b');
             terminal_putchar(' ');
             terminal_putchar('\b');
         }
     } else if (buffer_pos < SHELL_BUFFER_SIZE - 1) {
         command_buffer[buffer_pos++] = c;
+        cursor_pos = buffer_pos;
         terminal_putchar(c);
     }
 }
