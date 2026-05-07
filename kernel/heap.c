@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define HEAP_BASE           0x00200000U
+#define HEAP_BASE           0x00600000U
 #define HEAP_SIZE           0x00100000U
 #define HEAP_END            (HEAP_BASE + HEAP_SIZE)
 #define HEAP_ALIGN          16U
