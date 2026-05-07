@@ -28,37 +28,34 @@ fn panic(_info: &PanicInfo) -> ! {
 #[lang = "eh_personality"]
 extern "C" fn eh_personality() {}
 
-const TOTAL_PAGES: u32 = 1024;
-const PAGE_SIZE: u32 = 4096;
-const MIN_PAGE_ADDR: u32 = 0x800000;
-const MAX_PAGE_ADDR: u32 = MIN_PAGE_ADDR + (TOTAL_PAGES * PAGE_SIZE);
+const PAGE_SIZE: u32           = 4096;
+const PAGE_POOL_COUNT: u32     = 1024;
+const PAGE_POOL_START: u32     = 0x0080_0000;
+const PAGE_POOL_END: u32       = PAGE_POOL_START + PAGE_POOL_COUNT * PAGE_SIZE;
+const FREE_LIST_CAPACITY: usize = PAGE_POOL_COUNT as usize;
 
-// Free-list holds page addresses returned by rust_free_page so they can be
-// handed out again before bumping NEXT_PAGE further.
-const FREE_LIST_SIZE: usize = TOTAL_PAGES as usize;
-
-struct FreeList {
-    pages: UnsafeCell<[u32; FREE_LIST_SIZE]>,
+struct PageFreeList {
+    pages: UnsafeCell<[u32; FREE_LIST_CAPACITY]>,
     top:   UnsafeCell<usize>,
 }
 
-unsafe impl Sync for FreeList {}
+unsafe impl Sync for PageFreeList {}
 
-impl FreeList {
+impl PageFreeList {
     const fn new() -> Self {
         Self {
-            pages: UnsafeCell::new([0u32; FREE_LIST_SIZE]),
+            pages: UnsafeCell::new([0u32; FREE_LIST_CAPACITY]),
             top:   UnsafeCell::new(0),
         }
     }
 
-    fn push(&self, page: u32) -> bool {
+    fn push(&self, page_addr: u32) -> bool {
         unsafe {
             let top = self.top.get();
-            if *top >= FREE_LIST_SIZE {
+            if *top >= FREE_LIST_CAPACITY {
                 return false;
             }
-            (*self.pages.get())[*top] = page;
+            (*self.pages.get())[*top] = page_addr;
             *top += 1;
             true
         }
@@ -80,127 +77,100 @@ impl FreeList {
     }
 }
 
-static FREE_LIST: FreeList = FreeList::new();
+static PAGE_FREE_LIST: PageFreeList = PageFreeList::new();
+static ALLOCATED_PAGE_COUNT: AtomicU32 = AtomicU32::new(0);
+static NEXT_FREE_PAGE: AtomicU32 = AtomicU32::new(PAGE_POOL_START);
 
-static ALLOCATED_PAGES: AtomicU32 = AtomicU32::new(0);
-static NEXT_PAGE: AtomicU32 = AtomicU32::new(MIN_PAGE_ADDR);
-
-struct MemoryManager {
-    free_pages: UnsafeCell<u32>,
+struct PageAllocStats {
+    free_count: UnsafeCell<u32>,
 }
 
-unsafe impl Sync for MemoryManager {}
+unsafe impl Sync for PageAllocStats {}
 
-impl MemoryManager {
+impl PageAllocStats {
     const fn new() -> Self {
-        Self {
-            free_pages: UnsafeCell::new(TOTAL_PAGES),
-        }
+        Self { free_count: UnsafeCell::new(PAGE_POOL_COUNT) }
     }
-    
-    fn get_free_pages(&self) -> u32 {
-        unsafe { *self.free_pages.get() }
+
+    fn free_count(&self) -> u32 {
+        unsafe { *self.free_count.get() }
     }
-    
-    fn decrement_free_pages(&self) {
+
+    fn decrement(&self) {
         unsafe {
-            let free = self.free_pages.get();
-            if *free > 0 {
-                *free -= 1;
-            }
+            let count = self.free_count.get();
+            if *count > 0 { *count -= 1; }
         }
     }
-    
-    fn increment_free_pages(&self) {
+
+    fn increment(&self) {
         unsafe {
-            let free = self.free_pages.get();
-            if *free < TOTAL_PAGES {
-                *free += 1;
-            }
+            let count = self.free_count.get();
+            if *count < PAGE_POOL_COUNT { *count += 1; }
         }
     }
-    
+
     fn reset(&self) {
-        unsafe {
-            *self.free_pages.get() = TOTAL_PAGES;
-        }
+        unsafe { *self.free_count.get() = PAGE_POOL_COUNT; }
     }
 }
 
-static MEMORY_MANAGER: MemoryManager = MemoryManager::new();
+static PAGE_STATS: PageAllocStats = PageAllocStats::new();
 static mut GLOBAL_MEMORY_POOL: MemoryPool = MemoryPool::new();
 static mut GLOBAL_PROCESS_MANAGER: ProcessManager = ProcessManager::new();
 static mut GLOBAL_MESSAGE_QUEUE: MessageQueue = MessageQueue::new();
 
 #[no_mangle]
 pub extern "C" fn rust_memory_init() {
-    MEMORY_MANAGER.reset();
-    ALLOCATED_PAGES.store(0, Ordering::Relaxed);
-    NEXT_PAGE.store(MIN_PAGE_ADDR, Ordering::Relaxed);
-    FREE_LIST.reset();
+    PAGE_STATS.reset();
+    ALLOCATED_PAGE_COUNT.store(0, Ordering::Relaxed);
+    NEXT_FREE_PAGE.store(PAGE_POOL_START, Ordering::Relaxed);
+    PAGE_FREE_LIST.reset();
 }
 
 #[no_mangle]
 pub extern "C" fn rust_allocate_page() -> u32 {
-    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
-    if allocated >= TOTAL_PAGES {
+    if ALLOCATED_PAGE_COUNT.load(Ordering::Relaxed) >= PAGE_POOL_COUNT {
         return 0;
     }
 
-    // Reuse a previously freed page before consuming fresh address space.
-    if let Some(page) = FREE_LIST.pop() {
-        ALLOCATED_PAGES.fetch_add(1, Ordering::Relaxed);
-        MEMORY_MANAGER.decrement_free_pages();
-        return page;
+    if let Some(page_addr) = PAGE_FREE_LIST.pop() {
+        ALLOCATED_PAGE_COUNT.fetch_add(1, Ordering::Relaxed);
+        PAGE_STATS.decrement();
+        return page_addr;
     }
 
     loop {
-        let current_page = NEXT_PAGE.load(Ordering::Relaxed);
-
-        if current_page >= MAX_PAGE_ADDR {
+        let current = NEXT_FREE_PAGE.load(Ordering::Relaxed);
+        if current >= PAGE_POOL_END {
             return 0;
         }
-
-        let next_page = current_page + PAGE_SIZE;
-
-        if NEXT_PAGE.compare_exchange(
-            current_page,
-            next_page,
-            Ordering::Relaxed,
-            Ordering::Relaxed
-        ).is_ok() {
-            ALLOCATED_PAGES.fetch_add(1, Ordering::Relaxed);
-            MEMORY_MANAGER.decrement_free_pages();
-            return current_page;
+        let next = current + PAGE_SIZE;
+        if NEXT_FREE_PAGE.compare_exchange(current, next, Ordering::Relaxed, Ordering::Relaxed).is_ok() {
+            ALLOCATED_PAGE_COUNT.fetch_add(1, Ordering::Relaxed);
+            PAGE_STATS.decrement();
+            return current;
         }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn rust_free_page(page: u32) {
-    if page < MIN_PAGE_ADDR || page >= MAX_PAGE_ADDR {
+pub extern "C" fn rust_free_page(page_addr: u32) {
+    if page_addr < PAGE_POOL_START || page_addr >= PAGE_POOL_END {
         return;
     }
-
-    if page % PAGE_SIZE != 0 {
+    if page_addr % PAGE_SIZE != 0 {
         return;
     }
-
-    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
-    if allocated == 0 {
+    if ALLOCATED_PAGE_COUNT.load(Ordering::Relaxed) == 0 {
         return;
     }
-
-    // Return the page to the free-list so rust_allocate_page can hand it out again.
-    // If the free-list is somehow full (should not happen given FREE_LIST_SIZE == TOTAL_PAGES),
-    // the page is lost — acceptable for this allocator's scope.
-    FREE_LIST.push(page);
-    ALLOCATED_PAGES.fetch_sub(1, Ordering::Relaxed);
-    MEMORY_MANAGER.increment_free_pages();
+    PAGE_FREE_LIST.push(page_addr);
+    ALLOCATED_PAGE_COUNT.fetch_sub(1, Ordering::Relaxed);
+    PAGE_STATS.increment();
 }
 
 extern "C" {
-    fn terminal_writestring(s: *const u8);
     fn terminal_putchar(c: u8);
 }
 
@@ -235,38 +205,35 @@ fn print_u32(num: u32) {
 
 #[no_mangle]
 pub extern "C" fn rust_print_stats() {
-    let allocated = ALLOCATED_PAGES.load(Ordering::Relaxed);
-    let free = MEMORY_MANAGER.get_free_pages();
-    
-    print_str("  Total pages: ");
-    print_u32(TOTAL_PAGES);
-    print_str("\n  Allocated: ");
-    print_u32(allocated);
-    print_str("\n  Free: ");
-    print_u32(free);
+    let allocated = ALLOCATED_PAGE_COUNT.load(Ordering::Relaxed);
+    let free      = PAGE_STATS.free_count();
+
+    print_str("  Total pages: "); print_u32(PAGE_POOL_COUNT);
+    print_str("\n  Allocated: ");  print_u32(allocated);
+    print_str("\n  Free: ");       print_u32(free);
     print_str("\n");
 }
 
 #[no_mangle]
 pub extern "C" fn rust_get_total_memory() -> u32 {
-    TOTAL_PAGES * PAGE_SIZE
+    PAGE_POOL_COUNT * PAGE_SIZE
 }
 
 #[no_mangle]
 pub extern "C" fn rust_get_free_memory() -> u32 {
-    MEMORY_MANAGER.get_free_pages() * PAGE_SIZE
+    PAGE_STATS.free_count() * PAGE_SIZE
 }
 
 #[no_mangle]
 pub extern "C" fn rust_get_allocated_memory() -> u32 {
-    ALLOCATED_PAGES.load(Ordering::Relaxed) * PAGE_SIZE
+    ALLOCATED_PAGE_COUNT.load(Ordering::Relaxed) * PAGE_SIZE
 }
 
 #[no_mangle]
-pub extern "C" fn rust_is_valid_page(page: u32) -> bool {
-    page >= MIN_PAGE_ADDR && 
-    page < MAX_PAGE_ADDR && 
-    page % PAGE_SIZE == 0
+pub extern "C" fn rust_is_valid_page(page_addr: u32) -> bool {
+    page_addr >= PAGE_POOL_START
+        && page_addr < PAGE_POOL_END
+        && page_addr % PAGE_SIZE == 0
 }
 
 #[no_mangle]
@@ -289,10 +256,8 @@ pub extern "C" fn rust_pool_free(ptr: *mut u8) -> bool {
 pub extern "C" fn rust_pool_stats() {
     unsafe {
         let pool = &*core::ptr::addr_of!(GLOBAL_MEMORY_POOL);
-        print_str("  Pool allocated: ");
-        print_u32(pool.get_allocated_count() as u32);
-        print_str("\n  Pool free: ");
-        print_u32(pool.get_free_count() as u32);
+        print_str("  Pool allocated: "); print_u32(pool.get_allocated_count() as u32);
+        print_str("\n  Pool free: ");     print_u32(pool.get_free_count() as u32);
         print_str("\n");
     }
 }
@@ -300,14 +265,10 @@ pub extern "C" fn rust_pool_stats() {
 #[no_mangle]
 pub extern "C" fn rust_process_create(priority: u8, name: *const u8) -> u32 {
     unsafe {
-        if name.is_null() {
-            return 0;
-        }
-        
-        let name_len = utils::string_length(name);
+        if name.is_null() { return 0; }
+        let name_len   = utils::string_length(name);
         let name_slice = core::slice::from_raw_parts(name, name_len);
-        
-        let manager = &mut *core::ptr::addr_of_mut!(GLOBAL_PROCESS_MANAGER);
+        let manager    = &mut *core::ptr::addr_of_mut!(GLOBAL_PROCESS_MANAGER);
         manager.create_process(priority, name_slice).unwrap_or(0)
     }
 }
@@ -334,20 +295,16 @@ pub extern "C" fn rust_ipc_send(
     sender_pid: u32,
     receiver_pid: u32,
     data: *const u8,
-    data_len: usize
+    data_len: usize,
 ) -> bool {
     unsafe {
-        if data.is_null() {
-            return false;
-        }
-        
-        let data_slice = core::slice::from_raw_parts(data, data_len);
+        if data.is_null() { return false; }
+        let data_slice    = core::slice::from_raw_parts(data, data_len);
         let msg_type_enum = match msg_type {
             1 => ipc::MessageType::Data,
             2 => ipc::MessageType::Signal,
             _ => ipc::MessageType::Empty,
         };
-        
         let queue = &mut *core::ptr::addr_of_mut!(GLOBAL_MESSAGE_QUEUE);
         queue.send_message(msg_type_enum, sender_pid, receiver_pid, data_slice)
     }
@@ -360,4 +317,3 @@ pub extern "C" fn rust_ipc_has_message(receiver_pid: u32) -> bool {
         queue.has_message_for(receiver_pid)
     }
 }
-
