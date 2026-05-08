@@ -36,7 +36,6 @@ static void help_cmd(void) {
     terminal_writestring("  vfs          - Run VFS demo (create/write/read)\n");
     terminal_writestring("  syscall-test - Run syscall interface tests\n");
     terminal_writestring("  echo         - Echo arguments\n");
-    terminal_writestring("  keys         - Toggle key debug (show hex of each byte)\n");
     terminal_writestring("  shutdown     - Power off\n");
     terminal_writestring("  reboot       - Restart system\n");
 }
@@ -199,24 +198,6 @@ static void echo_cmd(const char* args) {
     terminal_writestring("\n");
 }
 
-/* Debug: print hex of every byte received. Toggle with 'keys' command */
-static int keys_debug = 0;
-
-static void keys_cmd(void) {
-    keys_debug = !keys_debug;
-    if (keys_debug)
-        terminal_writestring("Key debug ON — press keys to see hex. Type 'keys' again to stop.\n");
-    else
-        terminal_writestring("Key debug OFF.\n");
-}
-
-static void print_hex_byte(uint8_t b) {
-    const char hex[] = "0123456789ABCDEF";
-    terminal_writestring("0x");
-    terminal_putchar(hex[(b >> 4) & 0xF]);
-    terminal_putchar(hex[b & 0xF]);
-    terminal_putchar(' ');
-}
 
 static void parse_and_execute(void) {
     if (buffer_pos == 0) return;
@@ -250,8 +231,6 @@ static void parse_and_execute(void) {
         syscall_test_cmd();
     } else if (strcmp(cmd, "echo") == 0) {
         echo_cmd(args);
-    } else if (strcmp(cmd, "keys") == 0) {
-        keys_cmd();
     } else if (strcmp(cmd, "shutdown") == 0) {
         terminal_setcolor(0x0C);
         terminal_writestring("Shutting down...\n");
@@ -325,12 +304,6 @@ static void replace_line(const char* newcmd) {
 }
 
 void shell_handle_input(char c) {
-    /* Key debug mode: print every byte as hex */
-    if (keys_debug) {
-        print_hex_byte((uint8_t)c);
-        return;
-    }
-
     /* ANSI escape sequence: ESC [ A/B/C/D */
     if (esc_state == ESC_NONE && c == 0x1B) {
         esc_state = ESC_GOT_ESC;
