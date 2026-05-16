@@ -42,7 +42,6 @@ static void help_cmd(void) {
 
 static void version_cmd(void) {
     terminal_writestring("ToyOS v0.1\n");
-    terminal_writestring("Multi-language kernel\n");
 }
 
 static void meminfo_cmd(void) {
