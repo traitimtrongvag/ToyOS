@@ -143,14 +143,14 @@ void terminal_writestring(const char* data) {
 }
 
 /* Move the visible cursor left/right.
- * In -nographic mode output goes over serial to Termux — VGA register
+ * In -nographic mode output goes over serial to Termux - VGA register
  * writes are invisible there. Send ANSI CSI escape so the host terminal
  * moves its own cursor, and keep terminal_column in sync. */
 void terminal_move_cursor_left(void) {
     if (terminal_column > 0) {
         terminal_column--;
         cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
-        /* ESC [ D — cursor back 1 */
+        /* ESC [ D - cursor back 1 */
         serial_putchar(0x1B);
         serial_putchar('[');
         serial_putchar('D');
@@ -161,7 +161,7 @@ void terminal_move_cursor_right(void) {
     if (terminal_column < VGA_WIDTH - 1) {
         terminal_column++;
         cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
-        /* ESC [ C — cursor forward 1 */
+        /* ESC [ C - cursor forward 1 */
         serial_putchar(0x1B);
         serial_putchar('[');
         serial_putchar('C');
