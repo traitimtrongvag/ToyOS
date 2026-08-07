@@ -48,3 +48,9 @@ void cursor_move_left(void) {
     }
 }
 
+
+#define VGA_CURSOR_START_REG 0x0A
+#define VGA_CURSOR_END_REG   0x0B
+#define VGA_CURSOR_LOW_REG   0x0F
+#define VGA_CURSOR_HIGH_REG  0x0E
+#define CURSOR_DISABLE_MASK  0x20
