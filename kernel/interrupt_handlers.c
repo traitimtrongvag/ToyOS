@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "terminal.h"
 #include "port.h"
+#include "pic.h"
 
 typedef struct {
     uint32_t gs, fs, es, ds;
@@ -77,9 +78,9 @@ void isr_handler(registers_t* regs) {
 
 void irq_handler(registers_t* regs) {
     if (regs->int_no >= 40) {
-        outb(0xA0, 0x20);
+        outb(PIC2_COMMAND, PIC_EOI);
     }
-    outb(0x20, 0x20);
+    outb(PIC1_COMMAND, PIC_EOI);
     
     if (regs->int_no == 32) {
         extern void timer_handler(void);
