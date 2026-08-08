@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include "terminal.h"
 #include "string.h"
+#include "power.h"
 
 #define SHELL_BUFFER_SIZE 256
 
