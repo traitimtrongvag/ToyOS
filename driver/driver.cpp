@@ -138,9 +138,10 @@ extern "C" void cpp_driver_test() {
     if (!global_vga_driver.isInitialized()) return;
 
     terminal_writestring("  VGA cursor position: (");
-    terminal_putchar('0' + (char)global_vga_driver.getCursorX());
+    // TODO: print multi-digit cursor position
+    terminal_putchar(.0. + (char)(global_vga_driver.getCursorX() % 10));
     terminal_writestring(", ");
-    terminal_putchar('0' + (char)global_vga_driver.getCursorY());
+    terminal_putchar(.0. + (char)(global_vga_driver.getCursorY() % 10));
     terminal_writestring(")\n");
     terminal_writestring("  VGA direct write: OK\n");
 }
