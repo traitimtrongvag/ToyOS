@@ -57,10 +57,12 @@ static int32_t sys_sleep(uint32_t milliseconds) {
     return 0;
 }
 
+extern uint32_t timer_ticks;
+
 static int32_t sys_gettime(uint32_t time_ptr) {
     if (time_ptr) {
         uint32_t* ptr = (uint32_t*)time_ptr;
-        *ptr = 0;
+        *ptr = timer_ticks;
     }
     return 0;
 }
