@@ -56,7 +56,7 @@ impl MemoryPool {
         }
         
         self.free_list[block_idx] = true;
-        self.allocated_count -= 1;
+        self.allocated_count = self.allocated_count.saturating_sub(1);
         true
     }
     
