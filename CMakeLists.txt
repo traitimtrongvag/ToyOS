@@ -35,7 +35,7 @@ add_executable(toyos.elf
 )
 
 target_link_libraries(toyos.elf
-    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-toyos.json/release/librust_module.a
+    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-toyos/release/librust_module.a
     gcc
 )
 
