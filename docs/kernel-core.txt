@@ -42,15 +42,16 @@ Flow in kernel_main():
   heap_init()
   task_init()
   syscall_init()
+  heap_test()            -- run after all subsystems are initialized
+  paging_test()
+  task_test()
+  syscall_test()
+  vfs_demo()
   rust_memory_init()
-  rust_vfs_init()
   rust_allocate_page()   -- smoke test
   rust_print_stats()
   cpp_driver_init()
   cpp_driver_test()
-  task_test()
-  syscall_test()
-  vfs_demo()
   shell_init()
   sti + infinite hlt loop
 
