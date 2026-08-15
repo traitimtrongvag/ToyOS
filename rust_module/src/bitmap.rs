@@ -47,7 +47,7 @@ impl BitmapAllocator {
         let mask = !(1 << bit_idx);
         
         self.bitmap[byte_idx] &= mask;
-        self.allocated_frames -= 1;
+        self.allocated_frames = self.allocated_frames.saturating_sub(1);
         true
     }
     
