@@ -33,7 +33,7 @@ SYSTEM CALLS
 SYS_EXIT (0)
   Terminate current process
   Args: exit_code
-  Returns: Does not return
+  Returns: Returns 0 (stub - no actual process termination)
 
 SYS_WRITE (1)
   Write to file descriptor
