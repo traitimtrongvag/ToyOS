@@ -20,7 +20,7 @@ nasm -f elf32 kernel/asm_utils.asm -o build/asm_utils.o
 nasm -f elf32 kernel/paging_asm.asm -o build/paging_asm.o
 nasm -f elf32 kernel/syscall.asm    -o build/syscall_asm.o
 
-CFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -O2"
+CFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -Wall -Wextra -O2"
 
 echo "[3/4] Compiling kernel..."
 gcc $CFLAGS -c kernel/kernel.c        -o build/kernel.o
@@ -47,11 +47,12 @@ gcc $CFLAGS -c kernel/vfs_test.c      -o build/vfs_test.o
 gcc $CFLAGS -c kernel/syscall_test.c  -o build/syscall_test.o
 
 echo "[4/4] Compiling C++ driver..."
-CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-exceptions -fno-rtti -Wall -O2"
+CXXFLAGS="-m32 -ffreestanding -nostdlib -fno-pie -fno-stack-protector -fno-exceptions -fno-rtti -Wall -Wextra -O2"
 g++ $CXXFLAGS -c driver/driver.cpp    -o build/driver.o
 g++ $CXXFLAGS -c driver/logger.cpp    -o build/logger.o
 gcc $CFLAGS   -c driver/keyboard.c  -I kernel/ -o build/keyboard.o
 gcc $CFLAGS   -c driver/rtc.c       -I kernel/ -o build/rtc.o
+gcc $CFLAGS   -c driver/speaker.c   -I kernel/ -o build/speaker.o
 
 echo "Linking..."
 GCC_LIB_PATH=$(dirname $(gcc -m32 -print-libgcc-file-name) 2>/dev/null || echo "")
@@ -66,7 +67,7 @@ OBJS="build/boot.o \
     build/power.o build/cursor.o \
     build/syscall.o build/heap_test.o build/paging_test.o build/task_test.o \
     build/vfs_test.o build/syscall_test.o \
-    build/driver.o build/logger.o build/keyboard.o build/rtc.o"
+    build/driver.o build/logger.o build/keyboard.o build/rtc.o build/speaker.o"
 
 if [ -n "$GCC_LIB_PATH" ] && [ -f "$GCC_LIB_PATH/libgcc.a" ]; then
     ld -m elf_i386 -T kernel/linker.ld -o build/toyos.elf \
