@@ -76,4 +76,4 @@ Serial output is useful for:
   - Automated testing via serial capture
 
 Access serial output in QEMU:
-  qemu-system-i386 -kernel kernel.elf -serial stdio
+  qemu-system-i386 -kernel build/toyos.elf -serial stdio
