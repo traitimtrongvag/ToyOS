@@ -46,7 +46,7 @@ Rust memory manager controls:
   Frame size: 4KB
   Managed memory: 4MB
 
-Allocation range: 0x800000 - 0xBFFFFF
+Allocation range: 0x800000 - 0xC00000
 
 The allocator starts at 0x800000 (8MB) to stay clear of the kernel image.
 The kernel loads at 1MB; static BSS including 4MB of identity-mapped page
