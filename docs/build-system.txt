@@ -6,14 +6,14 @@ TOOLCHAIN
 - NASM: Assembly (.asm → .o)
 - GCC: C compiler with 32-bit support
 - G++: C++ compiler with 32-bit support
-- Rust: With i686-unknown-linux-gnu target
+- Rust: With i686-toyos.json custom target
 - ld: GNU linker
 
 
 BUILD STAGES
 
 1. Rust Library
-   cargo build --release --target i686-unknown-linux-gnu
+   cargo build --release --target i686-toyos.json
    Output: librust_module.a
 
 2. Assembly Bootloader
@@ -72,8 +72,8 @@ COMMON ISSUES
 "undefined reference to __stack_chk_fail"
   → Add -fno-stack-protector
 
-"target i686-unknown-linux-gnu not installed"
-  → rustup target add i686-unknown-linux-gnu
+"target i686-toyos.json not installed"
+  → Add target with rustup target add i686-unknown-linux-gnu
 
 "cannot find -lgcc"
   → Install gcc-multilib or adjust -L path
