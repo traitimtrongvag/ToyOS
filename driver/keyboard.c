@@ -1,4 +1,4 @@
-#include "port.h"
+#include "../kernel/port.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -39,7 +39,7 @@ static char resolve_char(uint8_t scancode) {
 
     if (shift_active) {
         char c = scancode_table_shifted[scancode];
-        if (c >= 'A' && c <= 'Z') return apply_case(c - 32);
+        if (c >= 'A' && c <= 'Z') return apply_case(c + 32);
         return c;
     }
 
