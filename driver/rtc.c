@@ -18,7 +18,7 @@
 #define RTC_BINARY_MODE        0x04
 
 static uint8_t cmos_read(uint8_t reg) {
-    outb(CMOS_ADDR_PORT, reg);
+    outb(CMOS_ADDR_PORT, reg | RTC_UPDATE_IN_PROGRESS);
     return inb(CMOS_DATA_PORT);
 }
 
