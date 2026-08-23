@@ -68,12 +68,19 @@ void serial_write_dec(uint32_t value) {
         return;
     }
 
-    char buf[10];
-    int  len = 0;
-    while (value > 0) {
-        buf[len++] = '0' + (value % 10);
-        value /= 10;
+    static const uint32_t powers[] = {
+        1000000000u, 100000000u, 10000000u, 1000000u,
+        100000u,     10000u,     1000u,     100u,
+        10u,         1u
+    };
+    static const int NUM_POWERS = 10;
+    int started = 0;
+    for (int p = 0; p < NUM_POWERS; p++) {
+        uint32_t power = powers[p];
+        if (!started && value < power) continue;
+        started = 1;
+        int digit = 0;
+        while (value >= power) { value -= power; digit++; }
+        serial_putchar('0' + digit);
     }
-    while (len > 0)
-        serial_putchar(buf[--len]);
 }
