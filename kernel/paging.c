@@ -44,7 +44,8 @@ void paging_init(void) {
     }
 
     current_directory = &kernel_directory;
-    paging_enable((uint32_t)kernel_directory.tables_physical);
+    kernel_directory.physical_addr = (uint32_t)&kernel_directory;
+    paging_enable(kernel_directory.physical_addr);
 }
 
 void paging_map_page(uint32_t vaddr, uint32_t paddr, uint32_t flags) {
