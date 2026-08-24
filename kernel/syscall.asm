@@ -45,8 +45,8 @@ syscall_handler:
     ; Clean up arguments
     add esp, 24
     
-    ; Save return value
-    mov [esp + 28], eax
+    ; Save return value into the EAX slot that popad will restore
+    mov [esp + 44], eax
     
     ; Restore registers
     pop gs
