@@ -21,7 +21,8 @@ A minimal operating system kernel demonstrating multi-language systems programmi
 The kernel consists of four language layers working together:
 
 - Assembly: Multiboot bootloader and hardware initialization
-- C: Core kernel functionality and VGA terminal driver  
+- C: Core kernel functionality
+- C++: VGA hardware driver, RTC, logger  
 - Rust: Memory management with page frame allocator
 - C++: Device driver layer with OOP abstractions
 
