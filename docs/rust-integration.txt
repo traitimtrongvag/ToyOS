@@ -19,7 +19,7 @@ Cargo.toml:
   crate-type = ["staticlib"]
   panic = "abort"
   
-Target: i686-toyos.json (custom)
+Target: i686-unknown-linux-gnu
 
 
 MEMORY MANAGER
