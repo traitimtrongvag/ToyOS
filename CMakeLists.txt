@@ -14,7 +14,7 @@ set(CMAKE_ASM_NASM_FLAGS "-f elf32")
 
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/rust_module/librust_module.a
-    COMMAND cargo build --release --target i686-unknown-linux-gnu
+    COMMAND cargo build --release --target i686-toyos.json
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/rust_module
     COMMENT "Building Rust module"
 )
@@ -30,7 +30,7 @@ add_executable(toyos.elf
 )
 
 target_link_libraries(toyos.elf
-    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-unknown-linux-gnu/release/librust_module.a
+    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-toyos.json/release/librust_module.a
     gcc
 )
 
