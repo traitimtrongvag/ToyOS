@@ -96,7 +96,7 @@ rust_vfs_read(name, name_len, buf, buf_len)
   Read data from file
   Returns: bytes read, -1 error
 
-rust_vfs_list()
+rust_vfs_list is not yet exposed in the C header()
   Print all filenames to the terminal, one per line.
   Uses MemFs::list() with a terminal_writestring callback internally.
 
