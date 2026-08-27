@@ -2,6 +2,7 @@
 #define PAGING_H
 
 #include <stdint.h>
+#include <stdint.h>
 #include "memory.h"
 
 #define PAGE_PRESENT    0x1U
