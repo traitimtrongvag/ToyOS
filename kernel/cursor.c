@@ -47,3 +47,4 @@ void cursor_move_left(void) {
         cursor_set_position((pos % VGA_WIDTH) - 1, pos / VGA_WIDTH);
     }
 }
+
