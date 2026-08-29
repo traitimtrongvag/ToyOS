@@ -5,8 +5,8 @@ use crate::vfs::{
 };
 use core::cmp;
 
-const MAX_FILES: usize = 64;
-const MAX_FILE_SIZE: usize = 4096;
+const MAX_FILES: usize = 8;
+const MAX_FILE_SIZE: usize = 512;
 
 #[derive(Clone)]
 struct MemFile {
@@ -168,9 +168,7 @@ static mut GLOBAL_MEMFS: MemFs = MemFs::new();
 
 #[no_mangle]
 pub extern "C" fn rust_vfs_init() {
-    unsafe {
-        GLOBAL_MEMFS = MemFs::new();
-    }
+    /* Already initialized at compile time via static mut. */
 }
 
 #[no_mangle]

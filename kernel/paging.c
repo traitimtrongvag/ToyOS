@@ -1,7 +1,7 @@
 #include "paging.h"
 #include <stddef.h>
 
-#define IDENTITY_MAP_TABLES     4U
+#define IDENTITY_MAP_TABLES     8U
 #define IDENTITY_MAP_PAGES      (IDENTITY_MAP_TABLES * PAGE_TABLE_ENTRIES)
 
 static page_directory_t kernel_directory __attribute__((aligned(PAGE_SIZE)));
