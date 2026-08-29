@@ -62,3 +62,5 @@ syscall_handler:
 syscall_stub:
     int 0x80
     ret
+
+section .note.GNU-stack noalloc noexec nowrite progbits

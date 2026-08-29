@@ -2,6 +2,11 @@
 #include <stdint.h>
 #include "string.h"
 
+/* bcmp is referenced by Rust's compiler-rt for memory comparison. */
+int bcmp(const void* s1, const void* s2, size_t n) {
+    return __builtin_memcmp(s1, s2, n) != 0;
+}
+
 void* memmove(void* dest, const void* src, size_t n) {
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;

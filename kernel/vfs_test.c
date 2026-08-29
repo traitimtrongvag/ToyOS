@@ -44,7 +44,7 @@ void vfs_demo(void) {
     terminal_writestring("\n");
 
     int32_t result = rust_vfs_create(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
         VFS_TYPE_REGULAR
     );
@@ -61,9 +61,9 @@ void vfs_demo(void) {
     terminal_writestring("\"\n");
 
     int32_t written = rust_vfs_write(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
-        (const uint8_t*)content,
+        (const char*)content,
         strlen(content)
     );
 
@@ -82,7 +82,7 @@ void vfs_demo(void) {
 
     memset(read_buffer, 0, sizeof(read_buffer));
     int32_t read_bytes = rust_vfs_read(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
         (uint8_t*)read_buffer,
         sizeof(read_buffer) - 1

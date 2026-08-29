@@ -185,6 +185,8 @@ extern void vfs_demo(void);
 extern void paging_init(void);
 
 void kernel_main(uint32_t magic, void* multiboot_info) {
+    (void)magic;
+    (void)multiboot_info;
     terminal_initialize();
     serial_init();
     
