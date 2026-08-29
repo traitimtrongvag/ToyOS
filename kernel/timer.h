@@ -14,3 +14,4 @@ uint32_t timer_get_ticks(void);
 void timer_wait(uint32_t ticks);
 
 #endif
+
