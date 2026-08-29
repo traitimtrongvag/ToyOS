@@ -16,3 +16,4 @@ uint32_t          paging_get_physical_address(uint32_t vaddr);
 page_directory_t *paging_get_current_directory(void);
 
 #endif
+
