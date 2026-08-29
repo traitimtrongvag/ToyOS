@@ -310,7 +310,7 @@ void shell_handle_input(char c) {
     if (esc_state == ESC_GOT_BRACKET) {
         esc_state = ESC_NONE;
         if (c == 'A') {
-            /* Arrow UP — older history */
+            /* Arrow UP - older history */
             if (history_count == 0) return;
             if (history_idx == -1)
                 history_idx = history_count - 1;
@@ -319,25 +319,25 @@ void shell_handle_input(char c) {
             int slot = history_idx % HISTORY_SIZE;
             replace_line(history[slot]);
         } else if (c == 'B') {
-            /* Arrow DOWN — newer history */
+            /* Arrow DOWN - newer history */
             if (history_idx == -1) return;
             if (history_idx < history_count - 1) {
                 history_idx++;
                 int slot = history_idx % HISTORY_SIZE;
                 replace_line(history[slot]);
             } else {
-                /* Past newest — clear line */
+                /* Past newest - clear line */
                 replace_line("");
                 history_idx = -1;
             }
         } else if (c == 'C') {
-            /* Arrow RIGHT — move cursor forward, but not past end of input */
+            /* Arrow RIGHT - move cursor forward, but not past end of input */
             if (cursor_pos < buffer_pos) {
                 cursor_pos++;
                 terminal_move_cursor_right();
             }
         } else if (c == 'D') {
-            /* Arrow LEFT — move cursor back, but not before start of input */
+            /* Arrow LEFT - move cursor back, but not before start of input */
             if (cursor_pos > 0) {
                 cursor_pos--;
                 terminal_move_cursor_left();

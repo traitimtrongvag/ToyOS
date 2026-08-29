@@ -1,7 +1,7 @@
 #include "timer.h"
 #include "port.h"
 
-/* volatile: written by the timer ISR, read in timer_wait — must not be cached in a register */
+/* volatile: written by the timer ISR, read in timer_wait - must not be cached in a register */
 static volatile uint32_t tick_count = 0;
 volatile uint32_t timer_ticks = 0;
 
@@ -35,7 +35,7 @@ void timer_wait(uint32_t ticks) {
      * make the while-loop spin forever. In that edge case, just return. */
     if (tick_count + ticks < tick_count) return;
     uint32_t target = tick_count + ticks;
-    /* Interrupts must be enabled here — the timer IRQ increments tick_count.
+    /* Interrupts must be enabled here - the timer IRQ increments tick_count.
      * Callers must not invoke timer_wait from a disabled-interrupt context. */
     __asm__ volatile("sti");
     while (tick_count < target) {
