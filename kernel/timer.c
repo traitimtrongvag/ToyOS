@@ -10,10 +10,6 @@ void timer_handler(void) {
     timer_ticks = tick_count;
 }
 
-void timer_callback(void) {
-    timer_handler();
-}
-
 static void timer_set_phase(uint32_t frequency) {
     uint32_t divisor = PIT_FREQUENCY / frequency;
     uint8_t low_byte = divisor & 0xFF;

@@ -26,19 +26,6 @@ void timer_init(uint32_t frequency)
     timer_init(100);  // 100 ticks per second
 
 
-CALLBACK
-
-void timer_callback(void)
-
-  Called on each timer interrupt.
-  
-  Increments internal tick counter.
-  Should be registered as IRQ 0 handler.
-  
-  Parameters: None
-  Returns: Nothing
-
-
 QUERY FUNCTIONS
 
 uint32_t timer_get_ticks(void)

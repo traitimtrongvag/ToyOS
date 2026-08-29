@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "port.h"
+#include "power.h"
 
 #define ACPI_POWER_OFF 0x2000
 #define QEMU_SHUTDOWN_PORT 0x604

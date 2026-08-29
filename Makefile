@@ -20,7 +20,7 @@ ifeq ($(shell uname -o 2>/dev/null),Android)
     LDFLAGS += --no-dynamic-linker
 else
     QEMU = qemu-system-i386
-    LDFLAGS += -L/usr/lib/gcc/i686-linux-gnu/13 -lgcc
+    LDFLAGS += $(shell $(CC) -print-libgcc-file-name | xargs -I{} echo -L$(dir {}) -lgcc)
 endif
 
 # Source and object files
@@ -85,7 +85,7 @@ build/driver_%.o: driver/%.c $(DRIVER_HEADERS)
 	$(CC) $(CFLAGS) -I kernel/ -c $< -o $@
 
 # Rust library
-$(RUST_LIB): rust_module/src/*.rs rust_module/Cargo.toml
+$(RUST_LIB): $(wildcard rust_module/src/*.rs) rust_module/Cargo.toml
 	@echo "Building Rust module..."
 	cd rust_module && cargo build --release --target i686-unknown-linux-gnu
 

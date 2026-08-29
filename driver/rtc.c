@@ -18,8 +18,8 @@
 #define RTC_BINARY_MODE        0x04
 
 static uint8_t cmos_read(uint8_t reg) {
-    outb(CMOS_ADDR_PORT, reg);
-    return inb(CMOS_DATA_PORT);
+    outb(CMOS_ADDR_PORT, reg | RTC_UPDATE_IN_PROGRESS);
+    uint8_t val = inb(CMOS_DATA_PORT); outb(CMOS_ADDR_PORT, reg); return val;
 }
 
 static uint8_t bcd_to_bin(uint8_t bcd) {

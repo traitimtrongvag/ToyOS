@@ -187,7 +187,7 @@ Supported features:
   - Member functions
   - Operator overloading
 
-Global objects with static storage duration are initialized before kernel_main().
+Global objects with static storage duration are initialized lazily by cpp_driver_init after kernel_main().
 
 
 C/C++ INTEGRATION

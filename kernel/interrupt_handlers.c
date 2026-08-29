@@ -21,8 +21,7 @@ static void print_hex(uint32_t val) {
         val >>= 4;
     }
     for (int i = 0; i < 8; i++) {
-        char tmp[2] = { buf[i], '\0' };
-        terminal_writestring(tmp);
+        terminal_putchar(buf[i]);
     }
 }
 

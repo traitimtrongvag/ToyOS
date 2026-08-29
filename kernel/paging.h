@@ -2,6 +2,7 @@
 #define PAGING_H
 
 #include <stdint.h>
+#include <stdint.h>
 #include "memory.h"
 
 #define PAGE_PRESENT    0x1U
@@ -15,3 +16,4 @@ uint32_t          paging_get_physical_address(uint32_t vaddr);
 page_directory_t *paging_get_current_directory(void);
 
 #endif
+

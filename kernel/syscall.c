@@ -88,6 +88,8 @@ int32_t syscall_dispatch(uint32_t num, uint32_t arg1, uint32_t arg2, uint32_t ar
 }
 
 void syscall_init(void) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
     syscall_table[SYS_EXIT] = (syscall_handler_t)sys_exit;
     syscall_table[SYS_WRITE] = (syscall_handler_t)sys_write;
     syscall_table[SYS_READ] = (syscall_handler_t)sys_read;
@@ -98,6 +100,7 @@ void syscall_init(void) {
     syscall_table[SYS_GETTIME] = (syscall_handler_t)sys_gettime;
     syscall_table[SYS_SBRK] = (syscall_handler_t)sys_sbrk;
     syscall_table[SYS_MMAP] = (syscall_handler_t)sys_mmap;
+#pragma GCC diagnostic pop
 
     idt_set_gate(SYSCALL_INT, (uint32_t)syscall_handler, 0x08, 0xEE);
 }

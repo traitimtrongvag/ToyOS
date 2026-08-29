@@ -59,11 +59,10 @@ jobs:
           expect
 
     - name: Setup Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
-        target: i686-unknown-linux-gnu
-        override: true
+        targets: i686-unknown-linux-gnu
 
     - name: Build kernel
       run: |
@@ -114,11 +113,10 @@ jobs:
           qemu-system-x86 binutils make
 
     - name: Setup Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
-        target: i686-unknown-linux-gnu
-        override: true
+        targets: i686-unknown-linux-gnu
 
     - name: Build kernel with all tests
       run: |
@@ -134,7 +132,7 @@ jobs:
           -serial mon:stdio \
           -no-reboot 2>&1 | tee /tmp/test_heap.log || true
         grep -q "Heap Allocator Test" /tmp/test_heap.log || (echo "FAIL: heap test output missing" && exit 1)
-        grep -qv "\[FAIL\]" /tmp/test_heap.log || (echo "FAIL: heap test has failures" && exit 1)
+        ! grep -q "\[FAIL\]" /tmp/test_heap.log || (echo "FAIL: heap test has failures" && exit 1)
         echo "Heap tests OK."
 
     - name: Run paging tests in QEMU
@@ -146,7 +144,7 @@ jobs:
           -serial mon:stdio \
           -no-reboot 2>&1 | tee /tmp/test_paging.log || true
         grep -q "Paging Test" /tmp/test_paging.log || (echo "FAIL: paging test output missing" && exit 1)
-        grep -qv "\[FAIL\]" /tmp/test_paging.log || (echo "FAIL: paging test has failures" && exit 1)
+        ! grep -q "\[FAIL\]" /tmp/test_paging.log || (echo "FAIL: paging test has failures" && exit 1)
         echo "Paging tests OK."
 
     - name: Run task tests in QEMU
@@ -158,7 +156,7 @@ jobs:
           -serial mon:stdio \
           -no-reboot 2>&1 | tee /tmp/test_task.log || true
         grep -q "Task Manager Test" /tmp/test_task.log || (echo "FAIL: task test output missing" && exit 1)
-        grep -qv "\[FAIL\]" /tmp/test_task.log || (echo "FAIL: task test has failures" && exit 1)
+        ! grep -q "\[FAIL\]" /tmp/test_task.log || (echo "FAIL: task test has failures" && exit 1)
         echo "Task tests OK."
 
     - name: Run syscall tests in QEMU
@@ -170,7 +168,7 @@ jobs:
           -serial mon:stdio \
           -no-reboot 2>&1 | tee /tmp/test_syscall.log || true
         grep -q "System Call Interface Test" /tmp/test_syscall.log || (echo "FAIL: syscall test output missing" && exit 1)
-        grep -qv "\[FAIL\]" /tmp/test_syscall.log || (echo "FAIL: syscall test has failures" && exit 1)
+        ! grep -q "\[FAIL\]" /tmp/test_syscall.log || (echo "FAIL: syscall test has failures" && exit 1)
         echo "Syscall tests OK."
 
     - name: Run VFS tests in QEMU

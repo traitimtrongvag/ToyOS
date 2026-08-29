@@ -194,6 +194,7 @@ Planned features:
 PERFORMANCE
 
 Overhead:
+Note: The following cycle counts are estimates and have not been benchmarked on real hardware.
   - Context switch: ~100 cycles
   - Register save/restore: ~30 cycles
   - Dispatcher lookup: ~10 cycles

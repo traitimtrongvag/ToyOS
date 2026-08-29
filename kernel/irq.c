@@ -1,14 +1,7 @@
 #include <stdint.h>
 #include "port.h"
 #include "idt.h"
-
-#define PIC1_COMMAND 0x20
-#define PIC1_DATA 0x21
-#define PIC2_COMMAND 0xA0
-#define PIC2_DATA 0xA1
-#define ICW1_INIT 0x10
-#define ICW1_ICW4 0x01
-#define ICW4_8086 0x01
+#include "pic.h"
 
 extern void irq0(void);
 extern void irq1(void);
@@ -27,21 +20,11 @@ extern void irq13(void);
 extern void irq14(void);
 extern void irq15(void);
 
-void irq_remap(void) {
-    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-    outb(PIC1_DATA, 0x20);
-    outb(PIC2_DATA, 0x28);
-    outb(PIC1_DATA, 0x04);
-    outb(PIC2_DATA, 0x02);
-    outb(PIC1_DATA, ICW4_8086);
-    outb(PIC2_DATA, ICW4_8086);
+void irq_install(void) {
+    pic_remap(0x20, 0x28);
+    /* Unmask all IRQs on both PICs */
     outb(PIC1_DATA, 0x0);
     outb(PIC2_DATA, 0x0);
-}
-
-void irq_install(void) {
-    irq_remap();
     idt_set_gate(32, (uint32_t)irq0, 0x08, 0x8E);
     idt_set_gate(33, (uint32_t)irq1, 0x08, 0x8E);
     idt_set_gate(34, (uint32_t)irq2, 0x08, 0x8E);

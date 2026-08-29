@@ -43,7 +43,7 @@ uint32_t task_create(void (*entry)(void)) {
     *--stack_top = EFLAGS_IF;
     *--stack_top = KERNEL_CODE_SEG;
     *--stack_top = (uint32_t)entry;
-    for (int i = 0; i < STACK_PADDING_REGS; i++)
+    for (unsigned int i = 0; i < STACK_PADDING_REGS; i++)
         *--stack_top = 0;
 
     task->context.esp    = (uint32_t)stack_top;

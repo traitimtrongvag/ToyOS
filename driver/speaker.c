@@ -34,8 +34,9 @@ void speaker_stop(void) {
 }
 
 void speaker_beep(uint32_t frequency, uint32_t duration_ms) {
-    /* duration_ms converted to PIT ticks (timer runs at configurable Hz) */
-    uint32_t ticks = duration_ms / 10;
+    /* duration_ms converted to ticks at 100 Hz timer frequency */
+    uint32_t ticks = (duration_ms + 5) / 10;
+    if (ticks == 0) ticks = 1;
     speaker_play(frequency);
     timer_wait(ticks);
     speaker_stop();

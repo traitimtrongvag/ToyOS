@@ -22,3 +22,4 @@ void irq_set_mask(uint8_t irq_line);
 void irq_clear_mask(uint8_t irq_line);
 
 #endif
+

@@ -9,11 +9,6 @@ static char command_buffer[SHELL_BUFFER_SIZE];
 static uint32_t buffer_pos = 0;  /* total chars in buffer */
 static uint32_t cursor_pos = 0;  /* cursor position within buffer (0..buffer_pos) */
 
-extern void terminal_writestring(const char* str);
-extern void terminal_putchar(char c);
-extern void terminal_setcolor(uint8_t color);
-extern int strcmp(const char* s1, const char* s2);
-
 static void shell_prompt(void) {
     terminal_setcolor(0x0A);
     terminal_writestring("toyos> ");
@@ -21,7 +16,6 @@ static void shell_prompt(void) {
 }
 
 static void clear_screen_cmd(void) {
-    extern void terminal_initialize(void);
     terminal_initialize();
 }
 

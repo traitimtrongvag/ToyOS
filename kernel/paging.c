@@ -1,7 +1,7 @@
 #include "paging.h"
 #include <stddef.h>
 
-#define IDENTITY_MAP_TABLES     4U
+#define IDENTITY_MAP_TABLES     8U
 #define IDENTITY_MAP_PAGES      (IDENTITY_MAP_TABLES * PAGE_TABLE_ENTRIES)
 
 static page_directory_t kernel_directory __attribute__((aligned(PAGE_SIZE)));
@@ -44,7 +44,8 @@ void paging_init(void) {
     }
 
     current_directory = &kernel_directory;
-    paging_enable((uint32_t)kernel_directory.tables_physical);
+    kernel_directory.physical_addr = (uint32_t)&kernel_directory;
+    paging_enable(kernel_directory.physical_addr);
 }
 
 void paging_map_page(uint32_t vaddr, uint32_t paddr, uint32_t flags) {

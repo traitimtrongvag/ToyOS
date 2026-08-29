@@ -10,8 +10,8 @@
 void timer_init(uint32_t frequency);
 void timer_install(void);
 void timer_handler(void);
-void timer_callback(void);
 uint32_t timer_get_ticks(void);
 void timer_wait(uint32_t ticks);
 
 #endif
+

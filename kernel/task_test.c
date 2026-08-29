@@ -38,7 +38,6 @@ void task_test(void) {
     uint32_t tid_b = task_create(dummy_task_b);
     report("second task gets distinct id", tid_b != tid_a && tid_b != (uint32_t)-1);
 
-    uint32_t overflow_tid = (uint32_t)-1;
     int overflow_ok = 1;
     for (int i = 0; i < 10; i++) {
         uint32_t t = task_create(dummy_task_a);
@@ -47,7 +46,6 @@ void task_test(void) {
         }
     }
     report("task_create returns -1 when MAX_TASKS exceeded", overflow_ok);
-    (void)overflow_tid;
 
     terminal_writestring("Results: ");
     char buf[8];

@@ -8,8 +8,8 @@
 #define VFS_TYPE_DIRECTORY 1
 
 void rust_vfs_init(void);
-int32_t rust_vfs_create(const uint8_t* name, size_t name_len, uint8_t file_type);
-int32_t rust_vfs_write(const uint8_t* name, size_t name_len, const uint8_t* data, size_t data_len);
-int32_t rust_vfs_read(const uint8_t* name, size_t name_len, uint8_t* buf, size_t buf_len);
+int32_t rust_vfs_create(const char* name, size_t name_len, uint8_t file_type);
+int32_t rust_vfs_write(const char* name, size_t name_len, const char* data, size_t data_len);
+int32_t rust_vfs_read(const char* name, size_t name_len, uint8_t* buf, size_t buf_len);
 
 #endif

@@ -12,3 +12,4 @@ void terminal_move_cursor_left(void);
 void terminal_move_cursor_right(void);
 
 #endif
+

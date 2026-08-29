@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* Forward declaration needed by terminal_putchar (defined in cursor.c) */
-void cursor_set_position(uint8_t x, uint8_t y);
+#include "cursor.h"
+#include "serial.h"
+#include "string.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -36,13 +37,6 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
     return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-size_t strlen(const char* str) {
-    size_t len = 0;
-    while (str[len])
-        len++;
-    return len;
-}
-
 static size_t terminal_row;
 static size_t terminal_column;
 static uint8_t terminal_color;
@@ -65,7 +59,7 @@ void terminal_setcolor(uint8_t color) {
     terminal_color = color;
 }
 
-void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
+static void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
     const size_t index = y * VGA_WIDTH + x;
     terminal_buffer[index] = vga_entry(c, color);
 }
@@ -133,7 +127,7 @@ update_cursor:
     cursor_set_position((uint8_t)terminal_column, (uint8_t)terminal_row);
 }
 
-void terminal_write(const char* data, size_t size) {
+static void terminal_write(const char* data, size_t size) {
     for (size_t i = 0; i < size; i++)
         terminal_putchar(data[i]);
 }
@@ -182,18 +176,17 @@ extern void heap_init(void);
 extern void task_init(void);
 extern void shell_init(void);
 extern void serial_init(void);
-extern void serial_putchar(char c);
 extern void syscall_init(void);
 extern void heap_test(void);
 extern void paging_test(void);
 extern void task_test(void);
 extern void syscall_test(void);
 extern void vfs_demo(void);
-extern void cursor_enable(uint8_t, uint8_t);
-extern void cursor_set_position(uint8_t, uint8_t);
 extern void paging_init(void);
 
 void kernel_main(uint32_t magic, void* multiboot_info) {
+    (void)magic;
+    (void)multiboot_info;
     terminal_initialize();
     serial_init();
     

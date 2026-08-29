@@ -36,7 +36,7 @@ build/toyos.elf: $(BOOT_OBJ) $(KERNEL_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
 		$(BOOT_OBJ) $(KERNEL_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
 
 run: build/toyos.elf
-	qemu-system-x86_64 -cpu qemu32 -kernel build/toyos.elf -nographic -serial mon:stdio
+	qemu-system-i386 -kernel build/toyos.elf -nographic -serial mon:stdio
 
 termux: build/toyos.elf
 	@echo "Use: ./run_termux.sh"

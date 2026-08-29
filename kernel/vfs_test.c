@@ -2,7 +2,34 @@
 #include "terminal.h"
 #include "string.h"
 
-void itoa(int32_t value, char* str, int base);
+/* Subtraction-based itoa to avoid div instructions (baremetal compat). */
+static void itoa_sub(int32_t value, char* buf) {
+    if (value == 0) {
+        buf[0] = '0';
+        buf[1] = '\0';
+        return;
+    }
+    static const uint32_t powers[] = {
+        1000000000u, 100000000u, 10000000u, 1000000u,
+        100000u,     10000u,     1000u,     100u,
+        10u,         1u
+    };
+    static const int NUM_POWERS = 10;
+    int i = 0;
+    uint32_t uval;
+    if (value < 0) { buf[i++] = '-'; uval = (uint32_t)(-(value + 1)) + 1u; }
+    else           { uval = (uint32_t)value; }
+    int started = 0;
+    for (int p = 0; p < NUM_POWERS; p++) {
+        uint32_t power = powers[p];
+        if (!started && uval < power) continue;
+        started = 1;
+        int digit = 0;
+        while (uval >= power) { uval -= power; digit++; }
+        buf[i++] = '0' + digit;
+    }
+    buf[i] = '\0';
+}
 
 void vfs_demo(void) {
     terminal_writestring("\n[VFS] Initializing virtual file system...\n");
@@ -17,7 +44,7 @@ void vfs_demo(void) {
     terminal_writestring("\n");
 
     int32_t result = rust_vfs_create(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
         VFS_TYPE_REGULAR
     );
@@ -34,16 +61,16 @@ void vfs_demo(void) {
     terminal_writestring("\"\n");
 
     int32_t written = rust_vfs_write(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
-        (const uint8_t*)content,
+        (const char*)content,
         strlen(content)
     );
 
     if (written > 0) {
         terminal_writestring("[VFS] Wrote ");
         char num_buf[16];
-        itoa(written, num_buf, 10);
+        itoa_sub(written, num_buf);
         terminal_writestring(num_buf);
         terminal_writestring(" bytes\n");
     } else {
@@ -55,7 +82,7 @@ void vfs_demo(void) {
 
     memset(read_buffer, 0, sizeof(read_buffer));
     int32_t read_bytes = rust_vfs_read(
-        (const uint8_t*)filename,
+        (const char*)filename,
         strlen(filename),
         (uint8_t*)read_buffer,
         sizeof(read_buffer) - 1
@@ -64,7 +91,7 @@ void vfs_demo(void) {
     if (read_bytes > 0) {
         terminal_writestring("[VFS] Read ");
         char num_buf[16];
-        itoa(read_bytes, num_buf, 10);
+        itoa_sub(read_bytes, num_buf);
         terminal_writestring(num_buf);
         terminal_writestring(" bytes: \"");
         terminal_writestring(read_buffer);
@@ -72,31 +99,5 @@ void vfs_demo(void) {
         terminal_writestring("[VFS] Test passed!\n");
     } else {
         terminal_writestring("[VFS] Read failed\n");
-    }
-}
-
-void itoa(int32_t value, char* str, int base) {
-    char* p = str;
-    char* p1, *p2;
-    uint32_t ud = value;
-    int32_t divisor = 10;
-
-    if (base == 16) divisor = 16;
-
-    do {
-        int32_t remainder = ud % divisor;
-        *p++ = (remainder < 10) ? remainder + '0' : remainder + 'a' - 10;
-    } while (ud /= divisor);
-
-    *p = 0;
-
-    p1 = str;
-    p2 = p - 1;
-    while (p1 < p2) {
-        char tmp = *p1;
-        *p1 = *p2;
-        *p2 = tmp;
-        p1++;
-        p2--;
     }
 }

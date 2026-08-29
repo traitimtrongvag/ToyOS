@@ -6,7 +6,7 @@ TOOLCHAIN
 - NASM: Assembly (.asm → .o)
 - GCC: C compiler with 32-bit support
 - G++: C++ compiler with 32-bit support
-- Rust: With i686-unknown-linux-gnu target
+- Rust: With i686-unknown-linux-gnu custom target
 - ld: GNU linker
 
 
@@ -73,7 +73,7 @@ COMMON ISSUES
   → Add -fno-stack-protector
 
 "target i686-unknown-linux-gnu not installed"
-  → rustup target add i686-unknown-linux-gnu
+  → Add target with rustup target add i686-unknown-linux-gnu
 
 "cannot find -lgcc"
   → Install gcc-multilib or adjust -L path

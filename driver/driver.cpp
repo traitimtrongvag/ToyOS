@@ -172,5 +172,3 @@ extern "C" void vga_hide_cursor(void) {
 extern "C" void vga_show_cursor(void) {
     global_vga_driver.showCursor();
 }
-
-

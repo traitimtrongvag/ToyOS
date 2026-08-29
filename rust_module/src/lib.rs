@@ -1,7 +1,6 @@
 #![no_std]
 #![allow(internal_features)]
 #![feature(lang_items)]
-#![feature(core_intrinsics)]
 
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicU32, Ordering};
