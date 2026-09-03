@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include "terminal.h"
 #include "string.h"
+#include "power.h"
 
 #define SHELL_BUFFER_SIZE 256
 
@@ -194,6 +195,7 @@ static void echo_cmd(const char* args) {
 
 static void parse_and_execute(void) {
     if (buffer_pos == 0) return;
+    if (buffer_pos >= SHELL_BUFFER_SIZE) buffer_pos = SHELL_BUFFER_SIZE - 1;
     command_buffer[buffer_pos] = '\0';
     char* cmd = command_buffer;
     while (*cmd == ' ') cmd++;
@@ -348,6 +350,7 @@ void shell_handle_input(char c) {
 
     if (c == '\n') {
         terminal_putchar('\n');
+    if (buffer_pos >= SHELL_BUFFER_SIZE) buffer_pos = SHELL_BUFFER_SIZE - 1;
         command_buffer[buffer_pos] = '\0';
         history_push(command_buffer);
         history_idx = -1;
