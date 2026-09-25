@@ -40,7 +40,9 @@ static void version_cmd(void) {
 }
 
 static void meminfo_cmd(void) {
-    #include "rust_bindings.h"
+    extern void rust_print_stats(void);
+    extern uint32_t heap_get_used(void);
+    extern uint32_t heap_get_free(void);
 
     terminal_writestring("=== Memory Info ===\n");
 
@@ -92,6 +94,7 @@ static uint32_t div_u32(uint32_t n, uint32_t d, uint32_t *rem) {
 }
 
 static void time_cmd(void) {
+    extern uint32_t timer_ticks;
     terminal_writestring("System uptime: ");
     uint32_t seconds = div_u32(timer_ticks, 100, 0);
     uint32_t sec_rem;
@@ -151,6 +154,7 @@ static void rtc_cmd(void) {
         uint16_t year;
     } rtc_time_t;
 
+    extern void rtc_read(rtc_time_t*);
     rtc_time_t t;
     rtc_read(&t);
 
@@ -170,10 +174,12 @@ static void rtc_cmd(void) {
 }
 
 static void vfs_cmd(void) {
+    extern void vfs_demo(void);
     vfs_demo();
 }
 
 static void syscall_test_cmd(void) {
+    extern void syscall_test(void);
     syscall_test();
 }
 
