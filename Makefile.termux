@@ -12,7 +12,7 @@ LDFLAGS := -m elf_i386 -T kernel/linker.ld --no-dynamic-linker
 BOOT_OBJ := build/boot.o
 KERNEL_OBJ := build/kernel.o
 DRIVER_OBJ := build/driver.o
-RUST_LIB := rust_module/target/i686-unknown-linux-gnu/release/librust_module.a
+RUST_LIB := rust_module/target/i686-toyos/release/librust_module.a
 
 all: build/toyos.elf
 
@@ -29,7 +29,7 @@ build/driver.o: driver/driver.cpp
 	$(CXX) $(CXXFLAGS) -c driver/driver.cpp -o build/driver.o
 
 $(RUST_LIB):
-	cd rust_module && cargo build --release --target i686-unknown-linux-gnu
+	cd rust_module && cargo build --release --target i686-toyos
 
 build/toyos.elf: $(BOOT_OBJ) $(KERNEL_OBJ) $(DRIVER_OBJ) $(RUST_LIB)
 	$(LD) $(LDFLAGS) -o build/toyos.elf \

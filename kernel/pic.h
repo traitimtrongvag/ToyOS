@@ -23,3 +23,6 @@ void irq_clear_mask(uint8_t irq_line);
 
 #endif
 
+
+#define ICW3_PIC1_SLAVE_IRQ 0x04U
+#define ICW3_PIC2_CASCADE_ID 0x02U

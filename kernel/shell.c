@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include "terminal.h"
 #include "string.h"
+#include "power.h"
 
 #define SHELL_BUFFER_SIZE 256
 
@@ -153,7 +154,7 @@ static void rtc_cmd(void) {
         uint16_t year;
     } rtc_time_t;
 
-    extern void rtc_read(rtc_time_t* time);
+    extern void rtc_read(rtc_time_t*);
     rtc_time_t t;
     rtc_read(&t);
 
@@ -194,6 +195,7 @@ static void echo_cmd(const char* args) {
 
 static void parse_and_execute(void) {
     if (buffer_pos == 0) return;
+    if (buffer_pos >= SHELL_BUFFER_SIZE) buffer_pos = SHELL_BUFFER_SIZE - 1;
     command_buffer[buffer_pos] = '\0';
     char* cmd = command_buffer;
     while (*cmd == ' ') cmd++;
@@ -227,12 +229,10 @@ static void parse_and_execute(void) {
     } else if (strcmp(cmd, "shutdown") == 0) {
         terminal_setcolor(0x0C);
         terminal_writestring("Shutting down...\n");
-        extern void acpi_power_off(void);
         acpi_power_off();
     } else if (strcmp(cmd, "reboot") == 0) {
         terminal_setcolor(0x0C);
         terminal_writestring("Rebooting...\n");
-        extern void reboot(void);
         reboot();
     } else if (*cmd != '\0') {
         terminal_writestring("Unknown command: ");
@@ -348,6 +348,7 @@ void shell_handle_input(char c) {
 
     if (c == '\n') {
         terminal_putchar('\n');
+    if (buffer_pos >= SHELL_BUFFER_SIZE) buffer_pos = SHELL_BUFFER_SIZE - 1;
         command_buffer[buffer_pos] = '\0';
         history_push(command_buffer);
         history_idx = -1;

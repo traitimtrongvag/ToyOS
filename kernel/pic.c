@@ -15,9 +15,9 @@ void pic_remap(uint8_t offset1, uint8_t offset2) {
     outb(PIC2_DATA, offset2);
     io_wait();
     
-    outb(PIC1_DATA, 4);
+    outb(PIC1_DATA, ICW3_PIC1_SLAVE_IRQ);
     io_wait();
-    outb(PIC2_DATA, 2);
+    outb(PIC2_DATA, ICW3_PIC2_CASCADE_ID);
     io_wait();
     
     outb(PIC1_DATA, ICW4_8086);
@@ -26,7 +26,9 @@ void pic_remap(uint8_t offset1, uint8_t offset2) {
     io_wait();
     
     outb(PIC1_DATA, mask1);
+    io_wait();
     outb(PIC2_DATA, mask2);
+    io_wait();
 }
 
 void pic_send_eoi(uint8_t irq) {

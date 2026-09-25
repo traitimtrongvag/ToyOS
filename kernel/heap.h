@@ -12,3 +12,4 @@ uint32_t heap_get_used(void);
 uint32_t heap_get_free(void);
 
 #endif
+

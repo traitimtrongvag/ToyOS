@@ -25,12 +25,17 @@ add_custom_target(rust_lib ALL
 
 add_executable(toyos.elf
     boot/boot.asm
-    kernel/kernel.c
-    driver/driver.cpp
+    kernel/kernel.c kernel/string.c kernel/gdt.c kernel/idt.c kernel/pic.c
+    kernel/timer.c kernel/paging.c kernel/interrupt_handlers.c kernel/irq.c
+    kernel/shell.c kernel/task.c kernel/heap.c kernel/power.c kernel/cursor.c
+    kernel/memory_funcs.c kernel/syscall.c kernel/vfs_test.c kernel/heap_test.c
+    kernel/paging_test.c kernel/task_test.c kernel/syscall_test.c
+    driver/driver.cpp driver/keyboard.c driver/logger.cpp driver/rtc.c
+    driver/speaker.c
 )
 
 target_link_libraries(toyos.elf
-    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-toyos.json/release/librust_module.a
+    ${CMAKE_SOURCE_DIR}/rust_module/target/i686-toyos/release/librust_module.a
     gcc
 )
 
